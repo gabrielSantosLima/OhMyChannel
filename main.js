@@ -372,18 +372,28 @@ function registerIpc() {
 
 /* ---------- Lifecycle ---------- */
 
-app.whenReady().then(() => {
-  app.setAppUserModelId("OhMyChannel");
-  buildContainer();
-  registerIpc();
-  createWindow();
-  createTray();
+const gotTheLock = app.requestSingleInstanceLock();
 
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-    else showWindow();
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    showWindow();
   });
-});
+
+  app.whenReady().then(() => {
+    app.setAppUserModelId("OhMyChannel");
+    buildContainer();
+    registerIpc();
+    createWindow();
+    createTray();
+
+    app.on("activate", () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+      else showWindow();
+    });
+  });
+}
 
 app.on("before-quit", () => {
   isQuitting = true;
