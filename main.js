@@ -210,6 +210,21 @@ function notify(title, body) {
   }
 }
 
+function notifyUploadDone(videoId) {
+  if (!Notification.isSupported()) return;
+  const url = `https://studio.youtube.com/video/${videoId}/edit`;
+  const notification = new Notification({
+    title: "Upload concluido",
+    body: "Clique para abrir o YouTube Studio e finalizar as informacoes do video.",
+    icon: ICO_PATH,
+  });
+  notification.on("click", () => {
+    shell.openExternal(url);
+    showWindow();
+  });
+  notification.show();
+}
+
 function updateTray() {
   if (!tray) return;
   const statusLabel = uploadState.active
@@ -296,7 +311,7 @@ function registerIpc() {
     updateTray();
 
     try {
-      return await upload(payload, (uploaded, total) => {
+      const data = await upload(payload, (uploaded, total) => {
         const percent = total ? Math.floor((uploaded / total) * 100) : 0;
         if (percent !== uploadState.percent) {
           uploadState.percent = percent;
@@ -306,6 +321,8 @@ function registerIpc() {
           event.sender.send("upload:progress", { uploaded, total, percent });
         }
       });
+      if (!isQuitting) notifyUploadDone(data.id);
+      return data;
     } catch (err) {
       if (!isQuitting && !cancelRequested) {
         notify("Falha no upload", err.message);
@@ -345,6 +362,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  app.setAppUserModelId("OhMyChannel");
   tokenPath = path.join(app.getPath("userData"), "token.json");
   templatesPath = path.join(app.getPath("userData"), "templates.json");
   registerIpc();
