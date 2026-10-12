@@ -18,6 +18,7 @@ const { google } = require("googleapis");
 const SCOPES = ["https://www.googleapis.com/auth/youtube.upload"];
 const SECRETS_PATH = path.join(__dirname, "client_secrets.json");
 const ICON_PATH = path.join(__dirname, "assets", "icon.png");
+const ICO_PATH = path.join(__dirname, "assets", "icon.ico");
 const CATEGORY_ID = "20";
 const PRIVACY_STATUS = "private";
 
@@ -189,7 +190,7 @@ function showWindow() {
 
 function notify(title, body) {
   if (Notification.isSupported()) {
-    new Notification({ title, body, icon: ICON_PATH }).show();
+    new Notification({ title, body, icon: ICO_PATH }).show();
   }
 }
 
@@ -302,7 +303,7 @@ function createWindow() {
     height: 640,
     resizable: false,
     title: "OhMyChannel",
-    icon: ICON_PATH,
+    icon: ICO_PATH,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
