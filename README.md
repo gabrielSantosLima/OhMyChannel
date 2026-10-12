@@ -10,6 +10,8 @@ and description fields.
 ## Features
 
 - Sign in with Google (OAuth) and upload videos to YouTube.
+- Queue multiple videos, each with its own title and description, and upload
+  them simultaneously with per-video progress.
 - Fill in only the title and description; finish the rest in YouTube Studio.
 - Keep uploading in the background with progress shown in the system tray.
 - Reusable title/description templates with the `/template <name> <params...>`

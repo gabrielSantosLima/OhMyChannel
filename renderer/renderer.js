@@ -2,23 +2,14 @@ const els = {
   authStatus: document.getElementById("authStatus"),
   loginBtn: document.getElementById("loginBtn"),
   logoutBtn: document.getElementById("logoutBtn"),
-  pickBtn: document.getElementById("pickBtn"),
-  fileName: document.getElementById("fileName"),
-  title: document.getElementById("title"),
-  titleCount: document.getElementById("titleCount"),
-  commandMenu: document.getElementById("commandMenu"),
-  titlePreview: document.getElementById("titlePreview"),
-  description: document.getElementById("description"),
-  descCount: document.getElementById("descCount"),
-  descCommandMenu: document.getElementById("descCommandMenu"),
-  descPreview: document.getElementById("descPreview"),
-  uploadBtn: document.getElementById("uploadBtn"),
-  progressWrap: document.getElementById("progressWrap"),
-  progressBar: document.getElementById("progressBar"),
-  progressText: document.getElementById("progressText"),
+  addBtn: document.getElementById("addBtn"),
+  uploadAllBtn: document.getElementById("uploadAllBtn"),
+  templatesBtn: document.getElementById("templatesBtn"),
+  queueInfo: document.getElementById("queueInfo"),
+  queue: document.getElementById("queue"),
+  emptyQueue: document.getElementById("emptyQueue"),
   message: document.getElementById("message"),
   themeBtn: document.getElementById("themeBtn"),
-  templatesBtn: document.getElementById("templatesBtn"),
   templatesModal: document.getElementById("templatesModal"),
   templatesClose: document.getElementById("templatesClose"),
   tplName: document.getElementById("tplName"),
@@ -29,10 +20,15 @@ const els = {
   tplList: document.getElementById("tplList"),
 };
 
-let selectedFile = null;
-let uploading = false;
-let cancelled = false;
+const items = [];
+const itemById = new Map();
 let templates = [];
+let idSeed = 0;
+
+function genId() {
+  idSeed += 1;
+  return `${Date.now().toString(36)}-${idSeed}`;
+}
 
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (c) => ({
@@ -87,7 +83,7 @@ function findTemplate(name) {
 }
 
 function expandTemplate(tpl, values) {
-  let out = tpl.title;
+  let out = tpl.pattern;
   tpl.params.forEach((param, i) => {
     out = out.split("{" + param + "}").join(values[i] ?? "");
   });
@@ -163,15 +159,15 @@ function createCommandField({ input, menu, preview, onChange }) {
     menu.innerHTML = "";
   }
 
-  function showMenu(items) {
-    if (!items.length) {
+  function showMenu(menuList) {
+    if (!menuList.length) {
       hideMenu();
       return;
     }
-    menuItems = items;
-    if (menuIndex >= items.length) menuIndex = 0;
+    menuItems = menuList;
+    if (menuIndex >= menuList.length) menuIndex = 0;
     menu.innerHTML = "";
-    items.forEach((item, i) => {
+    menuList.forEach((item, i) => {
       const row = document.createElement("div");
       row.className = "cmd-item" + (i === menuIndex ? " active" : "");
       const left = document.createElement("span");
@@ -234,7 +230,7 @@ function createCommandField({ input, menu, preview, onChange }) {
           .map((t) => ({
             icon: "#",
             label: t.name,
-            hint: t.title,
+            hint: t.pattern,
             apply: () => {
               setLine(`/template ${t.name} `);
               hideMenu();
@@ -301,22 +297,274 @@ function createCommandField({ input, menu, preview, onChange }) {
   return { updateMenu, updatePreview, hideMenu };
 }
 
-const titleField = createCommandField({
-  input: els.title,
-  menu: els.commandMenu,
-  preview: els.titlePreview,
-  onChange: () => {
-    updateCounters();
-    refreshUploadState();
-  },
-});
+/* ---------- Queue ---------- */
 
-createCommandField({
-  input: els.description,
-  menu: els.descCommandMenu,
-  preview: els.descPreview,
-  onChange: () => updateCounters(),
-});
+function statusText(item) {
+  switch (item.status) {
+    case "uploading":
+      return `Uploading ${item.percent}%`;
+    case "done":
+      return "Done";
+    case "error":
+      return "Error";
+    case "canceled":
+      return "Canceled";
+    default:
+      return "Pending";
+  }
+}
+
+function updateItemCounters(item) {
+  const title = expandValue(item.dom.title.value);
+  item.dom.titleCount.textContent = `${title.length} / 100`;
+  item.dom.titleCount.style.color = title.length > 100 ? "var(--error)" : "";
+
+  const description = expandValue(item.dom.desc.value);
+  item.dom.descCount.textContent = `${description.length} / 5000`;
+  item.dom.descCount.style.color =
+    description.length > 5000 ? "var(--error)" : "";
+}
+
+function refreshItem(item) {
+  item.dom.status.textContent = statusText(item);
+  item.dom.status.className = "card-status " + item.status;
+
+  const uploading = item.status === "uploading";
+  const done = item.status === "done";
+
+  item.dom.upload.classList.toggle("hidden", uploading || done);
+  item.dom.cancel.classList.toggle("hidden", !uploading);
+  item.dom.remove.classList.toggle("hidden", uploading);
+  item.dom.progress.classList.toggle("hidden", !uploading && !done);
+  item.dom.upload.disabled = done || !expandValue(item.dom.title.value).trim();
+}
+
+function refreshQueueInfo() {
+  els.emptyQueue.classList.toggle("hidden", items.length > 0);
+  const uploadable = items.filter(
+    (item) => item.status !== "uploading" && item.status !== "done"
+  ).length;
+  els.queueInfo.textContent = items.length
+    ? `${items.length} in queue`
+    : "";
+  els.uploadAllBtn.disabled = uploadable === 0;
+}
+
+function addItem(filePath) {
+  const fileName = filePath.split(/[\\/]/).pop();
+  const item = {
+    id: genId(),
+    filePath,
+    fileName,
+    status: "pending",
+    percent: 0,
+    cancelled: false,
+    dom: {},
+  };
+
+  const card = document.createElement("div");
+  card.className = "upload-card";
+
+  const head = document.createElement("div");
+  head.className = "card-head";
+  const file = document.createElement("span");
+  file.className = "card-file";
+  file.textContent = fileName;
+  file.title = filePath;
+  const status = document.createElement("span");
+  status.className = "card-status pending";
+  status.textContent = "Pending";
+  head.appendChild(file);
+  head.appendChild(status);
+
+  const titleInput = document.createElement("input");
+  titleInput.type = "text";
+  titleInput.maxLength = 200;
+  titleInput.autocomplete = "off";
+  titleInput.value = fileName.replace(/\.[^.]+$/, "");
+  titleInput.placeholder = "Video title or /template ...";
+  const titleCount = document.createElement("span");
+  titleCount.className = "counter";
+  const titleMenu = document.createElement("div");
+  titleMenu.className = "command-menu hidden";
+  const titlePreview = document.createElement("div");
+  titlePreview.className = "preview hidden";
+  const titleField = document.createElement("div");
+  titleField.className = "field";
+  const titleLabel = document.createElement("label");
+  titleLabel.textContent = "Title";
+  titleField.append(titleLabel, titleInput, titleCount, titleMenu, titlePreview);
+
+  const descInput = document.createElement("textarea");
+  descInput.maxLength = 5000;
+  descInput.rows = 3;
+  descInput.placeholder = "Video description or /template ...";
+  const descCount = document.createElement("span");
+  descCount.className = "counter";
+  const descMenu = document.createElement("div");
+  descMenu.className = "command-menu hidden";
+  const descPreview = document.createElement("div");
+  descPreview.className = "preview hidden";
+  const descField = document.createElement("div");
+  descField.className = "field";
+  const descLabel = document.createElement("label");
+  descLabel.textContent = "Description";
+  descField.append(descLabel, descInput, descCount, descMenu, descPreview);
+
+  const actions = document.createElement("div");
+  actions.className = "card-actions";
+  const upload = document.createElement("button");
+  upload.className = "primary";
+  upload.textContent = "Upload";
+  const cancel = document.createElement("button");
+  cancel.className = "hidden";
+  cancel.textContent = "Cancel";
+  const remove = document.createElement("button");
+  remove.textContent = "Remove";
+  const progress = document.createElement("div");
+  progress.className = "progress hidden";
+  const bar = document.createElement("div");
+  bar.className = "bar";
+  const fill = document.createElement("div");
+  fill.className = "fill";
+  bar.appendChild(fill);
+  const pct = document.createElement("span");
+  pct.className = "pct";
+  pct.textContent = "0%";
+  progress.append(bar, pct);
+  actions.append(upload, cancel, remove, progress);
+
+  card.append(head, titleField, descField, actions);
+  els.queue.appendChild(card);
+
+  item.dom = {
+    card,
+    status,
+    title: titleInput,
+    titleCount,
+    desc: descInput,
+    descCount,
+    upload,
+    cancel,
+    remove,
+    progress,
+    fill,
+    pct,
+  };
+
+  const onChange = () => {
+    updateItemCounters(item);
+    refreshItem(item);
+  };
+
+  createCommandField({
+    input: titleInput,
+    menu: titleMenu,
+    preview: titlePreview,
+    onChange,
+  });
+  createCommandField({
+    input: descInput,
+    menu: descMenu,
+    preview: descPreview,
+    onChange,
+  });
+
+  upload.addEventListener("click", () => startUpload(item));
+  cancel.addEventListener("click", () => cancelItem(item));
+  remove.addEventListener("click", () => removeItem(item));
+
+  items.push(item);
+  itemById.set(item.id, item);
+
+  updateItemCounters(item);
+  refreshItem(item);
+  refreshQueueInfo();
+  return item;
+}
+
+async function addFiles() {
+  const files = await window.api.pickVideo();
+  if (!files || files.length === 0) return;
+  files.forEach(addItem);
+  setMessage(
+    files.length === 1 ? "1 video added." : `${files.length} videos added.`,
+    ""
+  );
+}
+
+function removeItem(item) {
+  if (item.status === "uploading") return;
+  const index = items.indexOf(item);
+  if (index !== -1) items.splice(index, 1);
+  itemById.delete(item.id);
+  item.dom.card.remove();
+  refreshQueueInfo();
+}
+
+async function startUpload(item) {
+  if (item.status === "uploading" || item.status === "done") return;
+
+  const title = expandValue(item.dom.title.value).slice(0, 100);
+  if (!title.trim()) {
+    setMessage("Every upload needs a title.", "error");
+    return;
+  }
+
+  item.status = "uploading";
+  item.cancelled = false;
+  item.percent = 0;
+  item.dom.fill.style.width = "0%";
+  item.dom.pct.textContent = "0%";
+  refreshItem(item);
+  refreshQueueInfo();
+
+  try {
+    const result = await window.api.upload({
+      id: item.id,
+      filePath: item.filePath,
+      title,
+      description: expandValue(item.dom.desc.value).slice(0, 5000),
+    });
+    item.status = "done";
+    item.percent = 100;
+    item.dom.fill.style.width = "100%";
+    item.dom.pct.textContent = "100%";
+    setMessage(`Uploaded "${title}" - https://youtu.be/${result.id}`, "ok");
+  } catch (err) {
+    if (item.cancelled) {
+      item.status = "canceled";
+    } else {
+      item.status = "error";
+      setMessage("Upload error: " + err.message, "error");
+    }
+  } finally {
+    refreshItem(item);
+    refreshQueueInfo();
+  }
+}
+
+async function cancelItem(item) {
+  if (item.status !== "uploading") return;
+  item.cancelled = true;
+  await window.api.cancelUpload(item.id);
+  item.status = "canceled";
+  refreshItem(item);
+  refreshQueueInfo();
+}
+
+function uploadAll() {
+  const pending = items.filter(
+    (item) => item.status !== "uploading" && item.status !== "done"
+  );
+  pending.forEach(startUpload);
+  if (pending.length) {
+    setMessage(`Starting ${pending.length} upload(s)...`, "");
+  }
+}
+
+els.addBtn.addEventListener("click", addFiles);
+els.uploadAllBtn.addEventListener("click", uploadAll);
 
 /* ---------- Templates modal ---------- */
 
@@ -341,13 +589,13 @@ function renderTemplateList() {
     const detail = document.createElement("span");
     detail.className = "tpl-detail";
     detail.textContent =
-      tpl.title + (tpl.params.length ? " | params: " + tpl.params.join(", ") : "");
+      tpl.pattern + (tpl.params.length ? " | params: " + tpl.params.join(", ") : "");
     info.appendChild(name);
     info.appendChild(detail);
 
     const del = document.createElement("button");
     del.className = "danger";
-    del.textContent = "Excluir";
+    del.textContent = "Delete";
     del.addEventListener("click", async () => {
       templates = templates.filter((t) => t.id !== tpl.id);
       await persistTemplates();
@@ -366,20 +614,20 @@ async function addTemplate() {
     .split(",")
     .map((p) => p.trim().replace(/\s+/g, ""))
     .filter(Boolean);
-  const title = els.tplTitle.value.trim();
+  const pattern = els.tplTitle.value.trim();
 
   if (!name) return (els.tplError.textContent = "Enter the template name.");
   if (findTemplate(name))
     return (els.tplError.textContent =
       "A template with this name already exists.");
-  if (!title) return (els.tplError.textContent = "Enter the pattern.");
+  if (!pattern) return (els.tplError.textContent = "Enter the pattern.");
   for (const param of params) {
-    if (!title.includes("{" + param + "}")) {
+    if (!pattern.includes("{" + param + "}")) {
       return (els.tplError.textContent = `The pattern does not use parameter {${param}}.`);
     }
   }
 
-  templates.push({ id: Date.now().toString(36), name, params, title });
+  templates.push({ id: genId(), name, params, pattern });
   await persistTemplates();
   els.tplError.textContent = "";
   els.tplName.value = "";
@@ -404,14 +652,8 @@ els.templatesModal.addEventListener("click", (e) => {
 
 /* ---------- Auth ---------- */
 
-function refreshUploadState() {
-  const title = expandValue(els.title.value);
-  els.uploadBtn.disabled =
-    uploading || !selectedFile || title.trim().length === 0;
-}
-
 function setAuthUi(authenticated) {
-  els.authStatus.textContent = authenticated ? "Conectado" : "Desconectado";
+  els.authStatus.textContent = authenticated ? "Connected" : "Disconnected";
   els.authStatus.className = "status " + (authenticated ? "on" : "off");
   els.loginBtn.classList.toggle("hidden", authenticated);
   els.logoutBtn.classList.toggle("hidden", !authenticated);
@@ -443,82 +685,25 @@ els.logoutBtn.addEventListener("click", async () => {
   setMessage("Disconnected.");
 });
 
-/* ---------- File / counters ---------- */
+/* ---------- Upload events ---------- */
 
-els.pickBtn.addEventListener("click", async () => {
-  const file = await window.api.pickVideo();
-  if (!file) return;
-  selectedFile = file;
-  const name = file.split(/[\\/]/).pop();
-  els.fileName.textContent = name;
-  els.fileName.title = file;
-  if (!els.title.value) {
-    els.title.value = name.replace(/\.[^.]+$/, "");
-    titleField.updateMenu();
-    titleField.updatePreview();
-    updateCounters();
-  }
-  refreshUploadState();
+window.api.onProgress(({ id, percent }) => {
+  const item = itemById.get(id);
+  if (!item || item.status !== "uploading") return;
+  item.percent = percent;
+  item.dom.fill.style.width = percent + "%";
+  item.dom.pct.textContent = percent + "%";
+  item.dom.status.textContent = statusText(item);
 });
 
-function updateCounters() {
-  const title = expandValue(els.title.value);
-  els.titleCount.textContent = `${title.length} / 100`;
-  els.titleCount.style.color = title.length > 100 ? "var(--error)" : "";
-
-  const description = expandValue(els.description.value);
-  els.descCount.textContent = `${description.length} / 5000`;
-  els.descCount.style.color =
-    description.length > 5000 ? "var(--error)" : "";
-}
-
-/* ---------- Upload ---------- */
-
-window.api.onProgress(({ percent }) => {
-  els.progressWrap.classList.remove("hidden");
-  els.progressBar.style.width = percent + "%";
-  els.progressText.textContent = percent + "%";
-});
-
-window.api.onCancelled(() => {
-  cancelled = true;
-  uploading = false;
-  els.progressWrap.classList.add("hidden");
-  els.progressBar.style.width = "0%";
-  els.progressText.textContent = "0%";
-  setMessage("Upload canceled.", "");
-  refreshUploadState();
-});
-
-els.uploadBtn.addEventListener("click", async () => {
-  if (!selectedFile) return;
-  uploading = true;
-  cancelled = false;
-  refreshUploadState();
-  els.progressWrap.classList.remove("hidden");
-  els.progressBar.style.width = "0%";
-  els.progressText.textContent = "0%";
-  setMessage("Uploading...");
-
-  try {
-    const result = await window.api.upload({
-      filePath: selectedFile,
-      title: expandValue(els.title.value).slice(0, 100),
-      description: expandValue(els.description.value).slice(0, 5000),
-    });
-    setMessage(
-      `Uploaded! ID: ${result.id} - https://youtu.be/${result.id}`,
-      "ok"
-    );
-    els.progressBar.style.width = "100%";
-    els.progressText.textContent = "100%";
-  } catch (err) {
-    if (cancelled) return;
-    setMessage("Upload error: " + err.message, "error");
-  } finally {
-    uploading = false;
-    refreshUploadState();
-  }
+window.api.onCancelled(({ id }) => {
+  const item = itemById.get(id);
+  if (!item) return;
+  item.cancelled = true;
+  item.status = "canceled";
+  item.dom.progress.classList.add("hidden");
+  refreshItem(item);
+  refreshQueueInfo();
 });
 
 /* ---------- Init ---------- */
@@ -527,7 +712,7 @@ async function init() {
   initTheme();
   await loadTemplates();
   refreshAuth();
-  updateCounters();
+  refreshQueueInfo();
 }
 
 init();

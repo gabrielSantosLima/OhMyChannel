@@ -430,3 +430,117 @@ button.ghost {
 .tpl-item .danger:hover {
   border-color: var(--error);
 }
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.toolbar .muted {
+  margin-left: auto;
+}
+
+.empty-queue {
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 32px 12px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+}
+
+.queue {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.upload-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  background: var(--bg-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.card-file {
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-status {
+  font-size: 12px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.card-status.uploading {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.card-status.done {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+
+.card-status.error {
+  color: var(--error);
+  border-color: var(--error);
+}
+
+.upload-card .field {
+  margin-bottom: 0;
+}
+
+.upload-card .field label {
+  font-size: 12px;
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-actions .progress {
+  flex: 1;
+  margin-top: 0;
+}
+
+.card-actions button {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.bar .fill {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  transition: width 0.2s;
+}
+
+.pct {
+  font-size: 13px;
+  color: var(--muted);
+  min-width: 42px;
+  text-align: right;
+}

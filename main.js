@@ -53,7 +53,7 @@ const ICO_PATH = path.join(__dirname, "assets", "icon.ico");
 let mainWindow = null;
 let tray = null;
 let isQuitting = false;
-let uploadState = { active: false, percent: 0 };
+const activeUploads = new Map();
 let authController = null;
 let uploadController = null;
 let templateController = null;
@@ -161,43 +161,54 @@ function notifyUploadDone(videoId) {
 
 /* ---------- Tray ---------- */
 
+function overallProgress() {
+  let uploaded = 0;
+  let total = 0;
+  for (const entry of activeUploads.values()) {
+    uploaded += entry.uploaded;
+    total += entry.total;
+  }
+  return total ? Math.min(99, Math.floor((uploaded / total) * 100)) : 0;
+}
+
 function updateTray() {
   if (!tray) return;
-  const statusLabel = uploadState.active
-    ? `Uploading: ${uploadState.percent}%`
+  const count = activeUploads.size;
+  const percent = overallProgress();
+  const statusLabel = count
+    ? `Uploading ${count} video${count > 1 ? "s" : ""}: ${percent}%`
     : "No upload in progress";
 
-  tray.setToolTip(
-    uploadState.active
-      ? `OhMyChannel - Uploading ${uploadState.percent}%`
-      : "OhMyChannel"
-  );
+  tray.setToolTip(count ? `OhMyChannel - ${statusLabel}` : "OhMyChannel");
 
   const items = [
     { label: "Open OhMyChannel", click: showWindow },
     { type: "separator" },
     { label: statusLabel, enabled: false },
   ];
-  if (uploadState.active) {
-    items.push({ label: "Cancel upload", click: cancelActiveUpload });
+  if (count) {
+    items.push({ label: `Cancel all (${count})`, click: cancelAllUploads });
   }
   items.push({ type: "separator" }, { label: "Quit", click: quitApp });
 
   tray.setContextMenu(Menu.buildFromTemplate(items));
 }
 
-function cancelActiveUpload() {
-  uploadController.cancel();
-  uploadState = { active: false, percent: 0 };
+function cancelAllUploads() {
+  const ids = [...activeUploads.keys()];
+  uploadController.cancelAll();
+  activeUploads.clear();
   updateTray();
   if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send("upload:cancelled");
+    for (const id of ids) {
+      mainWindow.webContents.send("upload:cancelled", { id });
+    }
   }
 }
 
 function quitApp() {
   isQuitting = true;
-  uploadController.cancel();
+  uploadController.cancelAll();
   if (tray) {
     tray.destroy();
     tray = null;
@@ -228,42 +239,55 @@ function registerIpc() {
 
   ipcMain.handle("dialog:pickVideo", async () => {
     const result = await dialog.showOpenDialog(mainWindow, {
-      title: "Choose the video",
-      properties: ["openFile"],
+      title: "Choose the videos",
+      properties: ["openFile", "multiSelections"],
       filters: [
         { name: "Videos", extensions: ["mp4", "mkv", "mov", "avi", "webm"] },
       ],
     });
-    if (result.canceled || result.filePaths.length === 0) return null;
-    return result.filePaths[0];
+    if (result.canceled) return [];
+    return result.filePaths;
   });
 
   ipcMain.handle("upload:start", async (event, payload) => {
-    if (uploadState.active) throw new Error("An upload is already in progress.");
-
-    uploadState = { active: true, percent: 0 };
+    const { id } = payload;
+    activeUploads.set(id, { uploaded: 0, total: 0, percent: 0 });
     updateTray();
 
     try {
       const data = await uploadController.start(payload, (uploaded, total) => {
         const percent = total ? Math.floor((uploaded / total) * 100) : 0;
-        if (percent !== uploadState.percent) {
-          uploadState.percent = percent;
+        const previous = activeUploads.get(id);
+        activeUploads.set(id, { uploaded, total, percent });
+        if (!previous || previous.percent !== percent) {
           updateTray();
-        }
-        if (!event.sender.isDestroyed()) {
-          event.sender.send("upload:progress", { uploaded, total, percent });
+          if (!event.sender.isDestroyed()) {
+            event.sender.send("upload:progress", {
+              id,
+              uploaded,
+              total,
+              percent,
+            });
+          }
         }
       });
       if (!isQuitting) notifyUploadDone(data.id);
       return data;
     } catch (err) {
-      if (!isQuitting) notifyUploadFailed(err.message);
+      if (!isQuitting && err.message !== "Upload canceled by user.") {
+        notifyUploadFailed(err.message);
+      }
       throw err;
     } finally {
-      uploadState = { active: false, percent: 0 };
+      activeUploads.delete(id);
       updateTray();
     }
+  });
+
+  ipcMain.handle("upload:cancel", (_event, id) => {
+    uploadController.cancel(id);
+    activeUploads.delete(id);
+    updateTray();
   });
 }
 

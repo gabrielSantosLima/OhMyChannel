@@ -70,7 +70,8 @@ The application's business actions. One file, one class, one action.
   - `AuthenticateUseCase` - runs the OAuth flow.
   - `CheckAuthStatusUseCase` - reports whether the user is authenticated.
   - `LogoutUseCase` - clears stored credentials.
-  - `UploadVideoUseCase` - uploads a video and supports cancellation.
+  - `UploadVideoUseCase` - uploads videos (multiple concurrent uploads) and
+    supports per-upload cancellation.
   - `ListTemplatesUseCase` / `SaveTemplatesUseCase` - template persistence.
 
 ```js

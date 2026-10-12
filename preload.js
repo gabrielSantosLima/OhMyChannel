@@ -6,9 +6,11 @@ contextBridge.exposeInMainWorld("api", {
   logout: () => ipcRenderer.invoke("auth:logout"),
   pickVideo: () => ipcRenderer.invoke("dialog:pickVideo"),
   upload: (payload) => ipcRenderer.invoke("upload:start", payload),
+  cancelUpload: (id) => ipcRenderer.invoke("upload:cancel", id),
   listTemplates: () => ipcRenderer.invoke("templates:list"),
   saveTemplates: (list) => ipcRenderer.invoke("templates:save", list),
   onProgress: (cb) =>
     ipcRenderer.on("upload:progress", (_event, data) => cb(data)),
-  onCancelled: (cb) => ipcRenderer.on("upload:cancelled", () => cb()),
+  onCancelled: (cb) =>
+    ipcRenderer.on("upload:cancelled", (_event, data) => cb(data)),
 });

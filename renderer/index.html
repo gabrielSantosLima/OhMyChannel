@@ -58,51 +58,16 @@
     </header>
 
     <main>
-      <section class="field">
-        <label>Video</label>
-        <div class="row">
-          <button id="pickBtn">Choose file</button>
-          <span id="fileName" class="muted">No file selected</span>
-        </div>
-      </section>
-
-      <section class="field">
-        <label for="title">Title</label>
-        <input
-          id="title"
-          type="text"
-          maxlength="200"
-          autocomplete="off"
-          placeholder="Video title or /template ..."
-        />
-        <span id="titleCount" class="counter">0 / 100</span>
-        <div id="commandMenu" class="command-menu hidden"></div>
-        <div id="titlePreview" class="preview hidden"></div>
-      </section>
-
-      <section class="field">
-        <label for="description">Description</label>
-        <textarea
-          id="description"
-          maxlength="5000"
-          rows="6"
-          placeholder="Video description or /template ..."
-        ></textarea>
-        <span id="descCount" class="counter">0 / 5000</span>
-        <div id="descCommandMenu" class="command-menu hidden"></div>
-        <div id="descPreview" class="preview hidden"></div>
-      </section>
-
-      <section class="field">
-        <button id="uploadBtn" class="primary" disabled>Upload to YouTube</button>
-        <div class="progress hidden" id="progressWrap">
-          <div class="bar"><div id="progressBar"></div></div>
-          <span id="progressText">0%</span>
-        </div>
-      </section>
-
-      <div class="actions">
+      <div class="toolbar">
+        <button id="addBtn" class="primary">Add videos</button>
+        <button id="uploadAllBtn">Upload all</button>
         <button id="templatesBtn" class="ghost">Title templates</button>
+        <span id="queueInfo" class="muted"></span>
+      </div>
+
+      <div id="queue" class="queue"></div>
+      <div id="emptyQueue" class="empty-queue">
+        No videos in the queue. Click "Add videos" to select one or more files.
       </div>
 
       <p id="message" class="message"></p>

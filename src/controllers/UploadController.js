@@ -7,8 +7,12 @@ class UploadController {
     return this.uploadVideoUseCase.execute({ ...payload, onProgress });
   }
 
-  cancel() {
-    this.uploadVideoUseCase.cancel();
+  cancel(id) {
+    this.uploadVideoUseCase.cancel(id);
+  }
+
+  cancelAll() {
+    this.uploadVideoUseCase.cancelAll();
   }
 }
 
