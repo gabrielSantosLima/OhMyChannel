@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self'; script-src 'self'"
+    />
+    <title>OhMyChannel</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>OhMyChannel</h1>
+      <div id="auth" class="auth">
+        <span id="authStatus" class="status off">Desconectado</span>
+        <button id="loginBtn" class="ghost">Entrar com Google</button>
+        <button id="logoutBtn" class="ghost hidden">Sair</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="field">
+        <label>Video</label>
+        <div class="row">
+          <button id="pickBtn">Escolher arquivo</button>
+          <span id="fileName" class="muted">Nenhum arquivo selecionado</span>
+        </div>
+      </section>
+
+      <section class="field">
+        <label for="title">Titulo</label>
+        <input id="title" type="text" maxlength="100" placeholder="Titulo do video" />
+        <span id="titleCount" class="counter">0 / 100</span>
+      </section>
+
+      <section class="field">
+        <label for="description">Descricao</label>
+        <textarea
+          id="description"
+          maxlength="5000"
+          rows="6"
+          placeholder="Descricao do video"
+        ></textarea>
+        <span id="descCount" class="counter">0 / 5000</span>
+      </section>
+
+      <section class="field">
+        <button id="uploadBtn" class="primary" disabled>Enviar para o YouTube</button>
+        <div class="progress hidden" id="progressWrap">
+          <div class="bar"><div id="progressBar"></div></div>
+          <span id="progressText">0%</span>
+        </div>
+      </section>
+
+      <p id="message" class="message"></p>
+    </main>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>
