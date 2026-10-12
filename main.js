@@ -25,6 +25,7 @@ const PRIVACY_STATUS = "private";
 let mainWindow = null;
 let tray = null;
 let tokenPath = null;
+let templatesPath = null;
 let isQuitting = false;
 let activeUpload = null;
 let cancelRequested = false;
@@ -121,6 +122,21 @@ async function login() {
   const { tokens } = await client.getToken(code);
   saveTokens(tokens);
   return true;
+}
+
+function loadTemplates() {
+  if (fs.existsSync(templatesPath)) {
+    try {
+      return JSON.parse(fs.readFileSync(templatesPath, "utf8"));
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+function saveTemplates(list) {
+  fs.writeFileSync(templatesPath, JSON.stringify(list, null, 2));
 }
 
 async function upload({ filePath, title, description }, onProgress) {
@@ -268,6 +284,11 @@ function registerIpc() {
     if (result.canceled || result.filePaths.length === 0) return null;
     return result.filePaths[0];
   });
+  ipcMain.handle("templates:list", () => loadTemplates());
+  ipcMain.handle("templates:save", (_event, list) => {
+    saveTemplates(list);
+    return list;
+  });
   ipcMain.handle("upload:start", async (event, payload) => {
     if (uploadState.active) throw new Error("Ja existe um upload em andamento.");
 
@@ -299,9 +320,10 @@ function registerIpc() {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 680,
-    height: 640,
-    resizable: false,
+    width: 760,
+    height: 800,
+    minWidth: 640,
+    minHeight: 560,
     title: "OhMyChannel",
     icon: ICO_PATH,
     webPreferences: {
@@ -324,6 +346,7 @@ function createWindow() {
 
 app.whenReady().then(() => {
   tokenPath = path.join(app.getPath("userData"), "token.json");
+  templatesPath = path.join(app.getPath("userData"), "templates.json");
   registerIpc();
   createWindow();
   createTray();

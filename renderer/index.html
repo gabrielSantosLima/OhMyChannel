@@ -68,8 +68,16 @@
 
       <section class="field">
         <label for="title">Titulo</label>
-        <input id="title" type="text" maxlength="100" placeholder="Titulo do video" />
+        <input
+          id="title"
+          type="text"
+          maxlength="200"
+          autocomplete="off"
+          placeholder="Titulo do video ou /template ..."
+        />
         <span id="titleCount" class="counter">0 / 100</span>
+        <div id="commandMenu" class="command-menu hidden"></div>
+        <div id="titlePreview" class="preview hidden"></div>
       </section>
 
       <section class="field">
@@ -78,9 +86,11 @@
           id="description"
           maxlength="5000"
           rows="6"
-          placeholder="Descricao do video"
+          placeholder="Descricao do video ou /template ..."
         ></textarea>
         <span id="descCount" class="counter">0 / 5000</span>
+        <div id="descCommandMenu" class="command-menu hidden"></div>
+        <div id="descPreview" class="preview hidden"></div>
       </section>
 
       <section class="field">
@@ -91,8 +101,33 @@
         </div>
       </section>
 
+      <div class="actions">
+        <button id="templatesBtn" class="ghost">Templates de titulo</button>
+      </div>
+
       <p id="message" class="message"></p>
     </main>
+
+    <div id="templatesModal" class="modal hidden">
+      <div class="modal-card">
+        <div class="modal-head">
+          <h2>Templates de titulo</h2>
+          <button id="templatesClose" class="icon-btn" aria-label="Fechar">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="tpl-form">
+            <input id="tplName" type="text" placeholder="Nome do template (ex: gameplay)" />
+            <input id="tplParams" type="text" placeholder="Parametros separados por virgula (ex: jogo,episodio)" />
+            <input id="tplTitle" type="text" placeholder="Padrao do titulo (ex: {jogo} #{episodio})" />
+            <button id="tplAdd" class="primary">Adicionar template</button>
+            <span id="tplError" class="tpl-error"></span>
+          </div>
+          <div id="tplList" class="tpl-list"></div>
+        </div>
+      </div>
+    </div>
 
     <script src="renderer.js"></script>
   </body>
