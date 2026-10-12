@@ -38,7 +38,7 @@ preload.js        Secure IPC bridge exposed to the renderer
 
 Pure entities with no external dependencies.
 
-- Examples: `VideoMetadata`, `UploadTemplate`.
+- Examples: `VideoMetadata`, `UploadTemplate`, `AppSettings`.
 - Rules:
   - Plain data plus domain behavior (e.g. `VideoMetadata.fromInput`,
     `UploadTemplate.expand`).
@@ -50,9 +50,10 @@ Pure entities with no external dependencies.
 
 Implementations that talk to the outside world.
 
-- Examples: `YoutubeService` (Google API), `TokenStore` and `TemplateStore`
-  (persistence), `SystemBrowser` (opens URLs), `AuthCallbackServer` (loopback
-  HTTP server), `ClientConfigStore` (reads credentials).
+- Examples: `YoutubeService` (Google API), `TokenStore`, `TemplateStore` and
+  `SettingsStore` (persistence), `SystemBrowser` (opens URLs),
+  `AuthCallbackServer` (loopback HTTP server), `ClientConfigStore` (reads
+  credentials).
 - Rules:
   - One responsibility per service.
   - Receive configuration and collaborators through the constructor.
@@ -73,6 +74,8 @@ The application's business actions. One file, one class, one action.
   - `UploadVideoUseCase` - uploads videos (multiple concurrent uploads) and
     supports per-upload cancellation.
   - `ListTemplatesUseCase` / `SaveTemplatesUseCase` - template persistence.
+  - `GetSettingsUseCase` / `SaveSettingsUseCase` - app settings persistence
+    (theme, background mode, parallel uploads).
 
 ```js
 class ExampleUseCase {
@@ -95,7 +98,8 @@ Adapters between the outside world (IPC) and the use cases.
 - A controller receives its use cases through the constructor and exposes thin
   methods that delegate to `useCase.execute(...)`.
 - Controllers contain no business logic.
-- Examples: `AuthController`, `UploadController`, `TemplateController`.
+- Examples: `AuthController`, `UploadController`, `TemplateController`,
+  `SettingsController`.
 
 ### Composition root (`main.js`)
 

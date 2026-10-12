@@ -1,17 +1,18 @@
 const els = {
+  app: document.querySelector(".app"),
   authStatus: document.getElementById("authStatus"),
   loginBtn: document.getElementById("loginBtn"),
   logoutBtn: document.getElementById("logoutBtn"),
   addBtn: document.getElementById("addBtn"),
   uploadAllBtn: document.getElementById("uploadAllBtn"),
-  templatesBtn: document.getElementById("templatesBtn"),
   queueInfo: document.getElementById("queueInfo"),
   queue: document.getElementById("queue"),
   emptyQueue: document.getElementById("emptyQueue"),
   message: document.getElementById("message"),
-  themeBtn: document.getElementById("themeBtn"),
-  templatesModal: document.getElementById("templatesModal"),
-  templatesClose: document.getElementById("templatesClose"),
+  themeSegmented: document.getElementById("themeSegmented"),
+  bgToggle: document.getElementById("bgToggle"),
+  parallelInput: document.getElementById("parallelInput"),
+  collapseBtn: document.getElementById("collapseBtn"),
   tplName: document.getElementById("tplName"),
   tplParams: document.getElementById("tplParams"),
   tplTitle: document.getElementById("tplTitle"),
@@ -23,6 +24,7 @@ const els = {
 const items = [];
 const itemById = new Map();
 let templates = [];
+let settings = { theme: "dark", background: true, maxParallel: 4 };
 let idSeed = 0;
 
 function genId() {
@@ -49,32 +51,62 @@ function setMessage(text, type = "") {
 
 function applyTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
-  try {
-    localStorage.setItem("theme", theme);
-  } catch {
-    /* ignore */
-  }
 }
 
-function initTheme() {
-  let saved = null;
-  try {
-    saved = localStorage.getItem("theme");
-  } catch {
-    /* ignore */
-  }
-  if (saved === "dark" || saved === "light") {
-    applyTheme(saved);
-  } else {
-    const prefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
-    applyTheme(prefersLight ? "light" : "dark");
-  }
+/* ---------- Navigation ---------- */
+
+const navButtons = Array.from(document.querySelectorAll(".nav-item"));
+const views = Array.from(document.querySelectorAll(".view"));
+
+function showView(name) {
+  navButtons.forEach((btn) =>
+    btn.classList.toggle("active", btn.dataset.view === name)
+  );
+  views.forEach((view) =>
+    view.classList.toggle("active", view.id === "view-" + name)
+  );
 }
 
-els.themeBtn.addEventListener("click", () => {
-  const current = document.documentElement.getAttribute("data-theme");
-  applyTheme(current === "dark" ? "light" : "dark");
-});
+navButtons.forEach((btn) =>
+  btn.addEventListener("click", () => showView(btn.dataset.view))
+);
+
+/* ---------- Settings ---------- */
+
+const themeButtons = Array.from(
+  document.querySelectorAll("#themeSegmented .seg-btn")
+);
+
+function renderSettingsForm() {
+  themeButtons.forEach((btn) =>
+    btn.classList.toggle("active", btn.dataset.theme === settings.theme)
+  );
+  els.bgToggle.checked = !!settings.background;
+  els.parallelInput.value = settings.maxParallel;
+  els.app.classList.toggle("collapsed", !!settings.sidebarCollapsed);
+}
+
+async function persistSettings(changes) {
+  settings = await window.api.saveSettings(changes);
+  applyTheme(settings.theme);
+  renderSettingsForm();
+}
+
+themeButtons.forEach((btn) =>
+  btn.addEventListener("click", () => persistSettings({ theme: btn.dataset.theme }))
+);
+
+els.bgToggle.addEventListener("change", () =>
+  persistSettings({ background: els.bgToggle.checked })
+);
+
+els.parallelInput.addEventListener("change", () =>
+  persistSettings({ maxParallel: Number(els.parallelInput.value) })
+);
+
+els.collapseBtn.addEventListener("click", () =>
+  persistSettings({ sidebarCollapsed: !settings.sidebarCollapsed })
+);
 
 /* ---------- Templates ---------- */
 
@@ -637,18 +669,6 @@ async function addTemplate() {
 }
 
 els.tplAdd.addEventListener("click", addTemplate);
-els.templatesBtn.addEventListener("click", () => {
-  els.tplError.textContent = "";
-  renderTemplateList();
-  els.templatesModal.classList.remove("hidden");
-});
-els.templatesClose.addEventListener("click", () =>
-  els.templatesModal.classList.add("hidden")
-);
-els.templatesModal.addEventListener("click", (e) => {
-  if (e.target === els.templatesModal)
-    els.templatesModal.classList.add("hidden");
-});
 
 /* ---------- Auth ---------- */
 
@@ -709,8 +729,15 @@ window.api.onCancelled(({ id }) => {
 /* ---------- Init ---------- */
 
 async function init() {
-  initTheme();
+  try {
+    settings = await window.api.getSettings();
+  } catch {
+    /* keep defaults */
+  }
+  applyTheme(settings.theme);
+  renderSettingsForm();
   await loadTemplates();
+  renderTemplateList();
   refreshAuth();
   refreshQueueInfo();
 }

@@ -16,6 +16,8 @@ and description fields.
 - Keep uploading in the background with progress shown in the system tray.
 - Reusable title/description templates with the `/template <name> <params...>`
   command and autocomplete.
+- Sidebar navigation with a Settings screen: dark/light theme, run-in-background
+  toggle, and configurable number of parallel uploads.
 - Dark and light themes.
 
 ## Getting started
