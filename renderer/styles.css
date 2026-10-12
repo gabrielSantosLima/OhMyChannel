@@ -1,13 +1,38 @@
-:root {
+:root,
+:root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0f1115;
-  --panel: #1a1d24;
-  --border: #2a2f3a;
-  --text: #e8eaed;
-  --muted: #8a92a6;
-  --accent: #ff0033;
-  --accent-hover: #e6002e;
-  --ok: #34d399;
+  --bg: #121212;
+  --bg-soft: #171717;
+  --panel: #1e1e1e;
+  --panel-2: #262626;
+  --border: #333333;
+  --text: #f2f2f2;
+  --muted: #9a9a9a;
+  --accent: #f5c518;
+  --accent-hover: #ffd633;
+  --accent-soft: rgba(245, 197, 24, 0.14);
+  --accent-contrast: #1a1a1a;
+  --ok: #3ddc84;
+  --error: #ff6b6b;
+  --shadow: rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f6f6f3;
+  --bg-soft: #ffffff;
+  --panel: #ffffff;
+  --panel-2: #f0f0ed;
+  --border: #e2e2dd;
+  --text: #1a1a1a;
+  --muted: #6d6d6d;
+  --accent: #f5c518;
+  --accent-hover: #e6b800;
+  --accent-soft: rgba(245, 197, 24, 0.22);
+  --accent-contrast: #1a1a1a;
+  --ok: #0e9f6e;
+  --error: #d64545;
+  --shadow: rgba(0, 0, 0, 0.08);
 }
 
 * {
@@ -20,6 +45,7 @@ body {
   font-family: "Segoe UI", system-ui, sans-serif;
   background: var(--bg);
   color: var(--text);
+  transition: background 0.2s, color 0.2s;
 }
 
 header {
@@ -27,6 +53,18 @@ header {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 24px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
 }
 
 h1 {
@@ -43,14 +81,11 @@ h1 {
 
 .status {
   font-size: 13px;
+  color: var(--muted);
 }
 
 .status.on {
   color: var(--ok);
-}
-
-.status.off {
-  color: var(--muted);
 }
 
 .field {
@@ -79,6 +114,12 @@ textarea {
   font-family: inherit;
   resize: vertical;
   outline: none;
+  transition: border-color 0.15s, background 0.2s;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted);
 }
 
 input:focus,
@@ -121,6 +162,7 @@ button {
 
 button:hover:not(:disabled) {
   border-color: var(--accent);
+  color: var(--accent);
 }
 
 button:disabled {
@@ -131,17 +173,40 @@ button:disabled {
 button.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
-  font-weight: 600;
+  color: var(--accent-contrast);
+  font-weight: 700;
 }
 
 button.primary:hover:not(:disabled) {
   background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: var(--accent-contrast);
 }
 
 button.ghost {
   padding: 6px 12px;
   font-size: 13px;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 8px;
+  color: var(--muted);
+}
+
+.icon-btn:hover:not(:disabled) {
+  color: var(--accent);
+}
+
+:root[data-theme="dark"] .icon-moon {
+  display: none;
+}
+
+:root[data-theme="light"] .icon-sun {
+  display: none;
 }
 
 .hidden {
@@ -186,7 +251,7 @@ button.ghost {
 }
 
 .message.error {
-  color: #f87171;
+  color: var(--error);
 }
 
 .message.ok {

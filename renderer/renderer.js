@@ -13,6 +13,7 @@ const els = {
   progressBar: document.getElementById("progressBar"),
   progressText: document.getElementById("progressText"),
   message: document.getElementById("message"),
+  themeBtn: document.getElementById("themeBtn"),
 };
 
 let selectedFile = null;
@@ -23,6 +24,35 @@ function setMessage(text, type = "") {
   els.message.textContent = text;
   els.message.className = "message " + type;
 }
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  try {
+    localStorage.setItem("theme", theme);
+  } catch {
+    /* ignore */
+  }
+}
+
+function initTheme() {
+  let saved = null;
+  try {
+    saved = localStorage.getItem("theme");
+  } catch {
+    /* ignore */
+  }
+  if (saved === "dark" || saved === "light") {
+    applyTheme(saved);
+  } else {
+    const prefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
+    applyTheme(prefersLight ? "light" : "dark");
+  }
+}
+
+els.themeBtn.addEventListener("click", () => {
+  const current = document.documentElement.getAttribute("data-theme");
+  applyTheme(current === "dark" ? "light" : "dark");
+});
 
 function refreshUploadState() {
   els.uploadBtn.disabled =
@@ -137,3 +167,4 @@ els.uploadBtn.addEventListener("click", async () => {
 
 refreshAuth();
 updateCounters();
+initTheme();
