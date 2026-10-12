@@ -17,6 +17,7 @@ const els = {
 
 let selectedFile = null;
 let uploading = false;
+let cancelled = false;
 
 function setMessage(text, type = "") {
   els.message.textContent = text;
@@ -93,9 +94,20 @@ window.api.onProgress(({ percent }) => {
   els.progressText.textContent = percent + "%";
 });
 
+window.api.onCancelled(() => {
+  cancelled = true;
+  uploading = false;
+  els.progressWrap.classList.add("hidden");
+  els.progressBar.style.width = "0%";
+  els.progressText.textContent = "0%";
+  setMessage("Upload cancelado.", "");
+  refreshUploadState();
+});
+
 els.uploadBtn.addEventListener("click", async () => {
   if (!selectedFile) return;
   uploading = true;
+  cancelled = false;
   refreshUploadState();
   els.progressWrap.classList.remove("hidden");
   els.progressBar.style.width = "0%";
@@ -115,6 +127,7 @@ els.uploadBtn.addEventListener("click", async () => {
     els.progressBar.style.width = "100%";
     els.progressText.textContent = "100%";
   } catch (err) {
+    if (cancelled) return;
     setMessage("Erro no upload: " + err.message, "error");
   } finally {
     uploading = false;

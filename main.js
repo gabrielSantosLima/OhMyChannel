@@ -1,4 +1,14 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  Tray,
+  Menu,
+  Notification,
+  nativeImage,
+  ipcMain,
+  dialog,
+  shell,
+} = require("electron");
 const path = require("path");
 const fs = require("fs");
 const http = require("http");
@@ -7,11 +17,17 @@ const { google } = require("googleapis");
 
 const SCOPES = ["https://www.googleapis.com/auth/youtube.upload"];
 const SECRETS_PATH = path.join(__dirname, "client_secrets.json");
+const ICON_PATH = path.join(__dirname, "assets", "icon.png");
 const CATEGORY_ID = "20";
 const PRIVACY_STATUS = "private";
 
 let mainWindow = null;
+let tray = null;
 let tokenPath = null;
+let isQuitting = false;
+let activeUpload = null;
+let cancelRequested = false;
+let uploadState = { active: false, percent: 0 };
 
 function loadClientConfig() {
   const candidates = [
@@ -109,41 +125,128 @@ async function login() {
 async function upload({ filePath, title, description }, onProgress) {
   const client = createOAuthClient();
   if (!loadTokens()) throw new Error("Nao autenticado.");
-
   if (!fs.existsSync(filePath)) throw new Error("Arquivo nao encontrado.");
 
   const youtube = google.youtube({ version: "v3", auth: client });
   const total = fs.statSync(filePath).size;
   let uploaded = 0;
+  cancelRequested = false;
 
+  const source = fs.createReadStream(filePath);
   const counter = new Transform({
     transform(chunk, _enc, cb) {
+      if (activeUpload && activeUpload.cancelled) {
+        cb(new Error("Upload cancelado pelo usuario."));
+        return;
+      }
       uploaded += chunk.length;
       onProgress(uploaded, total);
       cb(null, chunk);
     },
   });
-
-  const source = fs.createReadStream(filePath);
   source.pipe(counter);
 
-  const response = await youtube.videos.insert({
-    part: ["snippet", "status"],
-    requestBody: {
-      snippet: {
-        title: title.slice(0, 100),
-        description: description.slice(0, 5000),
-        categoryId: CATEGORY_ID,
-      },
-      status: {
-        privacyStatus: PRIVACY_STATUS,
-        selfDeclaredMadeForKids: false,
-      },
-    },
-    media: { body: counter },
-  });
+  activeUpload = { source, counter, cancelled: false };
 
-  return response.data;
+  try {
+    const response = await youtube.videos.insert({
+      part: ["snippet", "status"],
+      requestBody: {
+        snippet: {
+          title: title.slice(0, 100),
+          description: description.slice(0, 5000),
+          categoryId: CATEGORY_ID,
+        },
+        status: {
+          privacyStatus: PRIVACY_STATUS,
+          selfDeclaredMadeForKids: false,
+        },
+      },
+      media: { body: counter },
+    });
+    return response.data;
+  } finally {
+    activeUpload = null;
+  }
+}
+
+function cancelUpload() {
+  if (activeUpload) {
+    cancelRequested = true;
+    activeUpload.cancelled = true;
+    activeUpload.source.destroy();
+    activeUpload.counter.destroy();
+    activeUpload = null;
+  }
+}
+
+function showWindow() {
+  if (!mainWindow) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+}
+
+function notify(title, body) {
+  if (Notification.isSupported()) {
+    new Notification({ title, body, icon: ICON_PATH }).show();
+  }
+}
+
+function updateTray() {
+  if (!tray) return;
+  const statusLabel = uploadState.active
+    ? `Enviando: ${uploadState.percent}%`
+    : "Nenhum upload em andamento";
+
+  tray.setToolTip(
+    uploadState.active
+      ? `OhMyChannel - Enviando ${uploadState.percent}%`
+      : "OhMyChannel"
+  );
+
+  const items = [
+    { label: "Abrir OhMyChannel", click: showWindow },
+    { type: "separator" },
+    { label: statusLabel, enabled: false },
+  ];
+  if (uploadState.active) {
+    items.push({ label: "Cancelar upload", click: cancelActiveUpload });
+  }
+  items.push(
+    { type: "separator" },
+    { label: "Sair", click: quitApp }
+  );
+
+  tray.setContextMenu(Menu.buildFromTemplate(items));
+}
+
+function cancelActiveUpload() {
+  cancelUpload();
+  uploadState = { active: false, percent: 0 };
+  updateTray();
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("upload:cancelled");
+  }
+}
+
+function quitApp() {
+  isQuitting = true;
+  cancelUpload();
+  if (tray) {
+    tray.destroy();
+    tray = null;
+  }
+  app.quit();
+}
+
+function createTray() {
+  const image = nativeImage.createFromPath(ICON_PATH);
+  tray = new Tray(image.resize({ width: 16, height: 16 }));
+  tray.setToolTip("OhMyChannel");
+  tray.on("click", showWindow);
+  tray.on("double-click", showWindow);
+  updateTray();
 }
 
 function registerIpc() {
@@ -165,10 +268,31 @@ function registerIpc() {
     return result.filePaths[0];
   });
   ipcMain.handle("upload:start", async (event, payload) => {
-    return upload(payload, (uploaded, total) => {
-      const percent = total ? Math.floor((uploaded / total) * 100) : 0;
-      event.sender.send("upload:progress", { uploaded, total, percent });
-    });
+    if (uploadState.active) throw new Error("Ja existe um upload em andamento.");
+
+    uploadState = { active: true, percent: 0 };
+    updateTray();
+
+    try {
+      return await upload(payload, (uploaded, total) => {
+        const percent = total ? Math.floor((uploaded / total) * 100) : 0;
+        if (percent !== uploadState.percent) {
+          uploadState.percent = percent;
+          updateTray();
+        }
+        if (!event.sender.isDestroyed()) {
+          event.sender.send("upload:progress", { uploaded, total, percent });
+        }
+      });
+    } catch (err) {
+      if (!isQuitting && !cancelRequested) {
+        notify("Falha no upload", err.message);
+      }
+      throw err;
+    } finally {
+      uploadState = { active: false, percent: 0 };
+      updateTray();
+    }
   });
 }
 
@@ -178,6 +302,7 @@ function createWindow() {
     height: 640,
     resizable: false,
     title: "OhMyChannel",
+    icon: ICON_PATH,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -185,6 +310,14 @@ function createWindow() {
     },
   });
   mainWindow.setMenuBarVisibility(false);
+
+  mainWindow.on("close", (event) => {
+    if (!isQuitting) {
+      event.preventDefault();
+      mainWindow.hide();
+    }
+  });
+
   mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"));
 }
 
@@ -192,11 +325,18 @@ app.whenReady().then(() => {
   tokenPath = path.join(app.getPath("userData"), "token.json");
   registerIpc();
   createWindow();
+  createTray();
+
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    else showWindow();
   });
 });
 
+app.on("before-quit", () => {
+  isQuitting = true;
+});
+
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
+  if (isQuitting) app.quit();
 });

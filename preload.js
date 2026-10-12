@@ -8,4 +8,5 @@ contextBridge.exposeInMainWorld("api", {
   upload: (payload) => ipcRenderer.invoke("upload:start", payload),
   onProgress: (cb) =>
     ipcRenderer.on("upload:progress", (_event, data) => cb(data)),
+  onCancelled: (cb) => ipcRenderer.on("upload:cancelled", () => cb()),
 });
