@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta
@@ -19,8 +19,8 @@
         <button
           id="themeBtn"
           class="icon-btn"
-          title="Alternar tema"
-          aria-label="Alternar tema"
+          title="Toggle theme"
+          aria-label="Toggle theme"
         >
           <svg
             class="icon-sun"
@@ -51,9 +51,9 @@
             <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
           </svg>
         </button>
-        <span id="authStatus" class="status off">Desconectado</span>
-        <button id="loginBtn" class="ghost">Entrar com Google</button>
-        <button id="logoutBtn" class="ghost hidden">Sair</button>
+        <span id="authStatus" class="status off">Disconnected</span>
+        <button id="loginBtn" class="ghost">Sign in with Google</button>
+        <button id="logoutBtn" class="ghost hidden">Sign out</button>
       </div>
     </header>
 
@@ -61,19 +61,19 @@
       <section class="field">
         <label>Video</label>
         <div class="row">
-          <button id="pickBtn">Escolher arquivo</button>
-          <span id="fileName" class="muted">Nenhum arquivo selecionado</span>
+          <button id="pickBtn">Choose file</button>
+          <span id="fileName" class="muted">No file selected</span>
         </div>
       </section>
 
       <section class="field">
-        <label for="title">Titulo</label>
+        <label for="title">Title</label>
         <input
           id="title"
           type="text"
           maxlength="200"
           autocomplete="off"
-          placeholder="Titulo do video ou /template ..."
+          placeholder="Video title or /template ..."
         />
         <span id="titleCount" class="counter">0 / 100</span>
         <div id="commandMenu" class="command-menu hidden"></div>
@@ -81,12 +81,12 @@
       </section>
 
       <section class="field">
-        <label for="description">Descricao</label>
+        <label for="description">Description</label>
         <textarea
           id="description"
           maxlength="5000"
           rows="6"
-          placeholder="Descricao do video ou /template ..."
+          placeholder="Video description or /template ..."
         ></textarea>
         <span id="descCount" class="counter">0 / 5000</span>
         <div id="descCommandMenu" class="command-menu hidden"></div>
@@ -94,7 +94,7 @@
       </section>
 
       <section class="field">
-        <button id="uploadBtn" class="primary" disabled>Enviar para o YouTube</button>
+        <button id="uploadBtn" class="primary" disabled>Upload to YouTube</button>
         <div class="progress hidden" id="progressWrap">
           <div class="bar"><div id="progressBar"></div></div>
           <span id="progressText">0%</span>
@@ -102,7 +102,7 @@
       </section>
 
       <div class="actions">
-        <button id="templatesBtn" class="ghost">Templates de titulo</button>
+        <button id="templatesBtn" class="ghost">Title templates</button>
       </div>
 
       <p id="message" class="message"></p>
@@ -111,17 +111,17 @@
     <div id="templatesModal" class="modal hidden">
       <div class="modal-card">
         <div class="modal-head">
-          <h2>Templates de titulo</h2>
-          <button id="templatesClose" class="icon-btn" aria-label="Fechar">
+          <h2>Title templates</h2>
+          <button id="templatesClose" class="icon-btn" aria-label="Close">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
           </button>
         </div>
         <div class="modal-body">
           <div class="tpl-form">
-            <input id="tplName" type="text" placeholder="Nome do template (ex: gameplay)" />
-            <input id="tplParams" type="text" placeholder="Parametros separados por virgula (ex: jogo,episodio)" />
-            <input id="tplTitle" type="text" placeholder="Padrao do titulo (ex: {jogo} #{episodio})" />
-            <button id="tplAdd" class="primary">Adicionar template</button>
+            <input id="tplName" type="text" placeholder="Template name (e.g. gameplay)" />
+            <input id="tplParams" type="text" placeholder="Parameters, comma separated (e.g. game,episode)" />
+            <input id="tplTitle" type="text" placeholder="Pattern (e.g. {game} #{episode})" />
+            <button id="tplAdd" class="primary">Add template</button>
             <span id="tplError" class="tpl-error"></span>
           </div>
           <div id="tplList" class="tpl-list"></div>

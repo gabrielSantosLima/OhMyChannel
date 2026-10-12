@@ -208,7 +208,7 @@ function createCommandField({ input, menu, preview, onChange }) {
     if (tokens.length === 1) {
       const query = command.slice(1).toLowerCase();
       const commands = [
-        { name: "template", hint: "Inserir um template" },
+        { name: "template", hint: "Insert a template" },
       ].filter((c) => c.name.startsWith(query));
       showMenu(
         commands.map((c) => ({
@@ -261,15 +261,15 @@ function createCommandField({ input, menu, preview, onChange }) {
     if (!tpl) {
       preview.innerHTML = `Template <strong>${escapeHtml(
         parsed.name
-      )}</strong> nao encontrado.`;
+      )}</strong> not found.`;
       return;
     }
     const missing = tpl.params.filter((_p, i) => !parsed.values[i]);
-    let html = `Previa: <strong>${escapeHtml(
+    let html = `Preview: <strong>${escapeHtml(
       expandTemplate(tpl, parsed.values)
     )}</strong>`;
     if (missing.length) {
-      html += ` &middot; faltam: ${escapeHtml(missing.join(", "))}`;
+      html += ` &middot; missing: ${escapeHtml(missing.join(", "))}`;
     }
     preview.innerHTML = html;
   }
@@ -325,7 +325,7 @@ function renderTemplateList() {
   if (templates.length === 0) {
     const empty = document.createElement("div");
     empty.className = "tpl-empty";
-    empty.textContent = "Nenhum template cadastrado.";
+    empty.textContent = "No templates yet.";
     els.tplList.appendChild(empty);
     return;
   }
@@ -368,13 +368,14 @@ async function addTemplate() {
     .filter(Boolean);
   const title = els.tplTitle.value.trim();
 
-  if (!name) return (els.tplError.textContent = "Informe o nome do template.");
+  if (!name) return (els.tplError.textContent = "Enter the template name.");
   if (findTemplate(name))
-    return (els.tplError.textContent = "Ja existe um template com esse nome.");
-  if (!title) return (els.tplError.textContent = "Informe o padrao do texto.");
+    return (els.tplError.textContent =
+      "A template with this name already exists.");
+  if (!title) return (els.tplError.textContent = "Enter the pattern.");
   for (const param of params) {
     if (!title.includes("{" + param + "}")) {
-      return (els.tplError.textContent = `O padrao nao usa o parametro {${param}}.`);
+      return (els.tplError.textContent = `The pattern does not use parameter {${param}}.`);
     }
   }
 
@@ -426,20 +427,20 @@ async function refreshAuth() {
 }
 
 els.loginBtn.addEventListener("click", async () => {
-  setMessage("Abrindo autorizacao no navegador...");
+  setMessage("Opening authorization in your browser...");
   try {
     await window.api.login();
     await refreshAuth();
-    setMessage("Conectado com sucesso.", "ok");
+    setMessage("Connected successfully.", "ok");
   } catch (err) {
-    setMessage("Falha ao conectar: " + err.message, "error");
+    setMessage("Failed to connect: " + err.message, "error");
   }
 });
 
 els.logoutBtn.addEventListener("click", async () => {
   await window.api.logout();
   await refreshAuth();
-  setMessage("Desconectado.");
+  setMessage("Disconnected.");
 });
 
 /* ---------- File / counters ---------- */
@@ -485,7 +486,7 @@ window.api.onCancelled(() => {
   els.progressWrap.classList.add("hidden");
   els.progressBar.style.width = "0%";
   els.progressText.textContent = "0%";
-  setMessage("Upload cancelado.", "");
+  setMessage("Upload canceled.", "");
   refreshUploadState();
 });
 
@@ -497,7 +498,7 @@ els.uploadBtn.addEventListener("click", async () => {
   els.progressWrap.classList.remove("hidden");
   els.progressBar.style.width = "0%";
   els.progressText.textContent = "0%";
-  setMessage("Enviando...");
+  setMessage("Uploading...");
 
   try {
     const result = await window.api.upload({
@@ -506,14 +507,14 @@ els.uploadBtn.addEventListener("click", async () => {
       description: expandValue(els.description.value).slice(0, 5000),
     });
     setMessage(
-      `Enviado! ID: ${result.id} - https://youtu.be/${result.id}`,
+      `Uploaded! ID: ${result.id} - https://youtu.be/${result.id}`,
       "ok"
     );
     els.progressBar.style.width = "100%";
     els.progressText.textContent = "100%";
   } catch (err) {
     if (cancelled) return;
-    setMessage("Erro no upload: " + err.message, "error");
+    setMessage("Upload error: " + err.message, "error");
   } finally {
     uploading = false;
     refreshUploadState();
