@@ -6,15 +6,29 @@ class UploadVideoUseCase {
     this.uploads = new Map();
   }
 
-  async execute({ id, filePath, title, description, onProgress }) {
+  async execute({ id, filePath, title, description, playlistId, onProgress }) {
     const metadata = VideoMetadata.fromInput({ title, description });
     try {
-      return await this.youtubeService.upload({
+      const result = await this.youtubeService.upload({
         metadata,
         filePath,
         onProgress,
         registerAbort: (abort) => this.uploads.set(id, abort),
       });
+
+      const warnings = [];
+      if (playlistId) {
+        try {
+          await this.youtubeService.addToPlaylist({
+            videoId: result.id,
+            playlistId,
+          });
+        } catch (err) {
+          warnings.push(`Playlist not updated: ${err.message}`);
+        }
+      }
+
+      return { ...result, warnings };
     } finally {
       this.uploads.delete(id);
     }

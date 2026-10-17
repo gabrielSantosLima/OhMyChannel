@@ -46,6 +46,9 @@ const {
 const {
   SaveSettingsUseCase,
 } = require("./src/domain/useCases/SaveSettingsUseCase");
+const {
+  ListPlaylistsUseCase,
+} = require("./src/domain/useCases/ListPlaylistsUseCase");
 
 const { AuthController } = require("./src/controllers/AuthController");
 const { UploadController } = require("./src/controllers/UploadController");
@@ -55,8 +58,12 @@ const {
 const {
   SettingsController,
 } = require("./src/controllers/SettingsController");
+const { PlaylistController } = require("./src/controllers/PlaylistController");
 
-const SCOPES = ["https://www.googleapis.com/auth/youtube.upload"];
+const SCOPES = [
+  "https://www.googleapis.com/auth/youtube.upload",
+  "https://www.googleapis.com/auth/youtube.force-ssl",
+];
 const SECRETS_PATH = path.join(__dirname, "client_secrets.json");
 const ICON_PATH = path.join(__dirname, "assets", "icon.png");
 const ICO_PATH = path.join(__dirname, "assets", "icon.ico");
@@ -69,6 +76,7 @@ let authController = null;
 let uploadController = null;
 let templateController = null;
 let settingsController = null;
+let playlistController = null;
 
 const activeUploads = new Map();
 const uploadQueue = [];
@@ -120,6 +128,10 @@ function buildContainer() {
   settingsController = new SettingsController({
     getSettingsUseCase: new GetSettingsUseCase({ settingsStore }),
     saveSettingsUseCase: new SaveSettingsUseCase({ settingsStore }),
+  });
+
+  playlistController = new PlaylistController({
+    listPlaylistsUseCase: new ListPlaylistsUseCase({ youtubeService }),
   });
 }
 
@@ -348,6 +360,8 @@ function registerIpc() {
     processUploadQueue();
     return updated;
   });
+
+  ipcMain.handle("playlists:list", () => playlistController.list());
 
   ipcMain.handle("dialog:pickVideo", async () => {
     const result = await dialog.showOpenDialog(mainWindow, {

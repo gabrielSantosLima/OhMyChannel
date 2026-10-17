@@ -25,6 +25,7 @@ const els = {
 const items = [];
 const itemById = new Map();
 let templates = [];
+let playlists = [];
 let settings = { theme: "dark", background: true, maxParallel: 4 };
 let idSeed = 0;
 
@@ -195,6 +196,39 @@ async function loadTemplates() {
 
 async function persistTemplates() {
   templates = await window.api.saveTemplates(templates);
+}
+
+/* ---------- Playlists ---------- */
+
+async function loadPlaylists() {
+  try {
+    playlists = await window.api.listPlaylists();
+  } catch {
+    playlists = [];
+  }
+  refreshPlaylistSelects();
+}
+
+function fillPlaylistSelect(select) {
+  const current = select.value;
+  select.innerHTML = "";
+  const none = document.createElement("option");
+  none.value = "";
+  none.textContent = "No playlist";
+  select.appendChild(none);
+  playlists.forEach((playlist) => {
+    const option = document.createElement("option");
+    option.value = playlist.id;
+    option.textContent = playlist.title;
+    select.appendChild(option);
+  });
+  select.value = playlists.some((p) => p.id === current) ? current : "";
+}
+
+function refreshPlaylistSelects() {
+  items.forEach((item) => {
+    if (item.dom.playlist) fillPlaylistSelect(item.dom.playlist);
+  });
 }
 
 /* ---------- Command-aware field ---------- */
@@ -702,6 +736,18 @@ function addItem(filePath) {
   descLabel.textContent = "Description";
   descField.append(descLabel, descInput, descCount, descMenu, descPreview);
 
+  const options = document.createElement("div");
+  options.className = "card-options";
+  const playlistField = document.createElement("div");
+  playlistField.className = "opt";
+  const playlistLabel = document.createElement("label");
+  playlistLabel.textContent = "Playlist";
+  const playlistSelect = document.createElement("select");
+  playlistSelect.className = "opt-select";
+  fillPlaylistSelect(playlistSelect);
+  playlistField.append(playlistLabel, playlistSelect);
+  options.appendChild(playlistField);
+
   const actions = document.createElement("div");
   actions.className = "card-actions";
   const upload = document.createElement("button");
@@ -725,7 +771,7 @@ function addItem(filePath) {
   progress.append(bar, pct);
   actions.append(upload, cancel, remove, progress);
 
-  card.append(head, titleField, descField, actions);
+  card.append(head, titleField, descField, options, actions);
   els.queue.appendChild(card);
 
   item.dom = {
@@ -735,6 +781,7 @@ function addItem(filePath) {
     titleCount,
     desc: descInput,
     descCount,
+    playlist: playlistSelect,
     upload,
     cancel,
     remove,
@@ -887,12 +934,19 @@ async function startUpload(item) {
       filePath: item.filePath,
       title,
       description: serializeField(item.dom.desc).slice(0, 5000),
+      playlistId: item.dom.playlist.value || null,
     });
     item.status = "done";
     item.percent = 100;
     item.dom.fill.style.width = "100%";
     item.dom.pct.textContent = "100%";
-    setMessage(`Uploaded "${title}" - https://youtu.be/${result.id}`, "ok");
+    const warnings = result.warnings && result.warnings.length
+      ? " - " + result.warnings.join("; ")
+      : "";
+    setMessage(
+      `Uploaded "${title}" - https://youtu.be/${result.id}${warnings}`,
+      result.warnings && result.warnings.length ? "error" : "ok"
+    );
   } catch (err) {
     if (item.cancelled) {
       item.status = "canceled";
@@ -1023,6 +1077,7 @@ els.loginBtn.addEventListener("click", async () => {
   try {
     await window.api.login();
     await refreshAuth();
+    await loadPlaylists();
     setMessage("Connected successfully.", "ok");
   } catch (err) {
     setMessage("Failed to connect: " + err.message, "error");
@@ -1032,6 +1087,8 @@ els.loginBtn.addEventListener("click", async () => {
 els.logoutBtn.addEventListener("click", async () => {
   await window.api.logout();
   await refreshAuth();
+  playlists = [];
+  refreshPlaylistSelects();
   setMessage("Disconnected.");
 });
 
@@ -1068,7 +1125,8 @@ async function init() {
   renderSettingsForm();
   await loadTemplates();
   renderTemplateList();
-  refreshAuth();
+  await refreshAuth();
+  await loadPlaylists();
   refreshQueueInfo();
 }
 

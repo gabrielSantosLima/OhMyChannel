@@ -37,13 +37,59 @@ class YoutubeService {
   }
 
   async isAuthenticated() {
-    if (!this.tokenStore.load()) return false;
+    const tokens = this.tokenStore.load();
+    if (!tokens) return false;
+    if (!this.hasRequiredScopes(tokens)) return false;
     try {
       await this.createClient().getAccessToken();
       return true;
     } catch {
       return false;
     }
+  }
+
+  hasRequiredScopes(tokens) {
+    if (!tokens || !tokens.scope) return false;
+    const granted = String(tokens.scope).split(/\s+/);
+    return this.scopes.every((scope) => granted.includes(scope));
+  }
+
+  async listPlaylists() {
+    if (!this.tokenStore.load()) throw new Error("Not authenticated.");
+    const youtube = google.youtube({ version: "v3", auth: this.createClient() });
+    const playlists = [];
+    let pageToken;
+    do {
+      const response = await youtube.playlists.list({
+        part: ["snippet", "contentDetails"],
+        mine: true,
+        maxResults: 50,
+        pageToken,
+      });
+      for (const item of response.data.items || []) {
+        playlists.push({
+          id: item.id,
+          title: item.snippet ? item.snippet.title : "",
+          itemCount: item.contentDetails ? item.contentDetails.itemCount : 0,
+        });
+      }
+      pageToken = response.data.nextPageToken;
+    } while (pageToken);
+    return playlists;
+  }
+
+  async addToPlaylist({ videoId, playlistId }) {
+    if (!this.tokenStore.load()) throw new Error("Not authenticated.");
+    const youtube = google.youtube({ version: "v3", auth: this.createClient() });
+    await youtube.playlistItems.insert({
+      part: ["snippet"],
+      requestBody: {
+        snippet: {
+          playlistId,
+          resourceId: { kind: "youtube#video", videoId },
+        },
+      },
+    });
   }
 
   async upload({ metadata, filePath, onProgress, registerAbort }) {

@@ -473,6 +473,40 @@ label {
   gap: 10px;
 }
 
+.card-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.card-options .opt {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.card-options .opt label {
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.card-options select,
+.card-options input {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 7px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+
+.card-options select:focus,
+.card-options input:focus {
+  border-color: var(--accent);
+}
+
 .card-actions .progress {
   flex: 1;
   margin-top: 0;
