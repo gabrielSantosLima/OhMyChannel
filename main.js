@@ -375,6 +375,18 @@ function registerIpc() {
     return result.filePaths;
   });
 
+  ipcMain.handle("dialog:pickThumbnail", async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: "Choose the thumbnail",
+      properties: ["openFile"],
+      filters: [
+        { name: "Images", extensions: ["jpg", "jpeg", "png", "webp"] },
+      ],
+    });
+    if (result.canceled || !result.filePaths.length) return null;
+    return result.filePaths[0];
+  });
+
   ipcMain.handle("upload:start", (event, payload) =>
     enqueueUpload(event, payload)
   );

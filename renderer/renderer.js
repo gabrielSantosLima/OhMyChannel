@@ -237,6 +237,14 @@ function refreshPlaylistSelects() {
   });
 }
 
+function applyThumbnail(item, path) {
+  item.thumbnailPath = path || null;
+  item.dom.thumbnailName.textContent = path
+    ? path.split(/[\\/]/).pop()
+    : "No image";
+  item.dom.thumbnailClear.classList.toggle("hidden", !path);
+}
+
 /* ---------- Command-aware field ---------- */
 
 function createCommandField({ input, menu, preview, onChange }) {
@@ -686,6 +694,7 @@ function addItem(filePath) {
     status: "pending",
     percent: 0,
     cancelled: false,
+    thumbnailPath: null,
     dom: {},
   };
 
@@ -763,6 +772,26 @@ function addItem(filePath) {
   publishField.append(publishLabel, publishInput);
   options.appendChild(publishField);
 
+  const thumbField = document.createElement("div");
+  thumbField.className = "opt thumb-opt";
+  const thumbLabel = document.createElement("label");
+  thumbLabel.textContent = "Thumbnail";
+  const thumbRow = document.createElement("div");
+  thumbRow.className = "thumb-row";
+  const thumbButton = document.createElement("button");
+  thumbButton.type = "button";
+  thumbButton.textContent = "Choose image";
+  const thumbName = document.createElement("span");
+  thumbName.className = "thumb-name";
+  thumbName.textContent = "No image";
+  const thumbClear = document.createElement("button");
+  thumbClear.type = "button";
+  thumbClear.className = "ghost hidden";
+  thumbClear.textContent = "Remove";
+  thumbRow.append(thumbButton, thumbName, thumbClear);
+  thumbField.append(thumbLabel, thumbRow);
+  options.appendChild(thumbField);
+
   const actions = document.createElement("div");
   actions.className = "card-actions";
   const upload = document.createElement("button");
@@ -798,6 +827,8 @@ function addItem(filePath) {
     descCount,
     playlist: playlistSelect,
     publish: publishInput,
+    thumbnailName: thumbName,
+    thumbnailClear: thumbClear,
     upload,
     cancel,
     remove,
@@ -828,6 +859,39 @@ function addItem(filePath) {
   cancel.addEventListener("click", () => cancelItem(item));
   remove.addEventListener("click", () => removeItem(item));
 
+  thumbButton.addEventListener("click", async () => {
+    const path = await window.api.pickThumbnail();
+    if (path) applyThumbnail(item, path);
+  });
+  thumbClear.addEventListener("click", () => applyThumbnail(item, null));
+
+  ["dragenter", "dragover"].forEach((type) =>
+    thumbField.addEventListener(type, (event) => {
+      if (!hasFileDrag(event)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.dataTransfer.dropEffect = "copy";
+      thumbField.classList.add("drag-over");
+    })
+  );
+  thumbField.addEventListener("dragleave", (event) => {
+    if (event.relatedTarget && thumbField.contains(event.relatedTarget)) return;
+    thumbField.classList.remove("drag-over");
+  });
+  thumbField.addEventListener("drop", (event) => {
+    if (!hasFileDrag(event)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    thumbField.classList.remove("drag-over");
+    const file = event.dataTransfer.files[0];
+    const path = file ? getDroppedPath(file) : "";
+    if (path && isImageFile(path)) {
+      applyThumbnail(item, path);
+    } else {
+      setMessage("Drop a JPG, PNG or WEBP image as the thumbnail.", "error");
+    }
+  });
+
   items.push(item);
   itemById.set(item.id, item);
 
@@ -848,28 +912,40 @@ async function addFiles() {
 }
 
 const VIDEO_EXTENSIONS = ["mp4", "mkv", "mov", "avi", "webm"];
+const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp"];
+
+function fileExtension(path) {
+  return path.split(".").pop().toLowerCase();
+}
 
 function isVideoFile(path) {
-  const ext = path.split(".").pop().toLowerCase();
-  return VIDEO_EXTENSIONS.includes(ext);
+  return VIDEO_EXTENSIONS.includes(fileExtension(path));
+}
+
+function isImageFile(path) {
+  return IMAGE_EXTENSIONS.includes(fileExtension(path));
+}
+
+function getDroppedPath(file) {
+  try {
+    return window.api.getPathForFile(file);
+  } catch {
+    return file.path || "";
+  }
 }
 
 function handleDrop(event) {
   event.preventDefault();
   const files = Array.from(event.dataTransfer.files || []);
   const paths = files
-    .map((file) => {
-      try {
-        return window.api.getPathForFile(file);
-      } catch {
-        return file.path || "";
-      }
-    })
+    .map(getDroppedPath)
     .filter(Boolean)
     .filter(isVideoFile);
 
   if (!paths.length) {
-    setMessage("No supported video files were dropped.", "error");
+    if (!files.some((file) => isImageFile(getDroppedPath(file)))) {
+      setMessage("No supported video files were dropped.", "error");
+    }
     return;
   }
 
@@ -952,6 +1028,7 @@ async function startUpload(item) {
       description: serializeField(item.dom.desc).slice(0, 5000),
       playlistId: item.dom.playlist.value || null,
       publishAt: toIsoOrNull(item.dom.publish.value),
+      thumbnailPath: item.thumbnailPath || null,
     });
     item.status = "done";
     item.percent = 100;

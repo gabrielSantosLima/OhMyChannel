@@ -6,7 +6,16 @@ class UploadVideoUseCase {
     this.uploads = new Map();
   }
 
-  async execute({ id, filePath, title, description, playlistId, publishAt, onProgress }) {
+  async execute({
+    id,
+    filePath,
+    title,
+    description,
+    playlistId,
+    publishAt,
+    thumbnailPath,
+    onProgress,
+  }) {
     const metadata = VideoMetadata.fromInput({ title, description, publishAt });
     try {
       const result = await this.youtubeService.upload({
@@ -17,6 +26,17 @@ class UploadVideoUseCase {
       });
 
       const warnings = [];
+      if (thumbnailPath) {
+        try {
+          await this.youtubeService.setThumbnail({
+            videoId: result.id,
+            filePath: thumbnailPath,
+          });
+        } catch (err) {
+          warnings.push(`Thumbnail not set: ${err.message}`);
+        }
+      }
+
       if (playlistId) {
         try {
           await this.youtubeService.addToPlaylist({

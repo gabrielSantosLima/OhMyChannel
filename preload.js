@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld("api", {
   login: () => ipcRenderer.invoke("auth:login"),
   logout: () => ipcRenderer.invoke("auth:logout"),
   pickVideo: () => ipcRenderer.invoke("dialog:pickVideo"),
+  pickThumbnail: () => ipcRenderer.invoke("dialog:pickThumbnail"),
   getPathForFile: (file) => webUtils.getPathForFile(file),
   upload: (payload) => ipcRenderer.invoke("upload:start", payload),
   cancelUpload: (id) => ipcRenderer.invoke("upload:cancel", id),

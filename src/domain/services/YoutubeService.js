@@ -92,6 +92,16 @@ class YoutubeService {
     });
   }
 
+  async setThumbnail({ videoId, filePath }) {
+    if (!this.tokenStore.load()) throw new Error("Not authenticated.");
+    if (!fs.existsSync(filePath)) throw new Error("Thumbnail file not found.");
+    const youtube = google.youtube({ version: "v3", auth: this.createClient() });
+    await youtube.thumbnails.set({
+      videoId,
+      media: { body: fs.createReadStream(filePath) },
+    });
+  }
+
   async upload({ metadata, filePath, onProgress, registerAbort }) {
     if (!this.tokenStore.load()) throw new Error("Not authenticated.");
     if (!fs.existsSync(filePath)) throw new Error("File not found.");
