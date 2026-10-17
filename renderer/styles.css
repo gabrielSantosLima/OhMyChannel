@@ -316,6 +316,73 @@ label {
   color: var(--muted);
 }
 
+.cmd-field {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 12px;
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.7;
+  outline: none;
+  min-height: 44px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  transition: border-color 0.15s, background 0.2s;
+}
+
+.cmd-field:focus-within {
+  border-color: var(--accent);
+}
+
+.cmd-field:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.cmd {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  vertical-align: baseline;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 1px 6px;
+  margin: 0 2px;
+  white-space: nowrap;
+}
+
+.cmd-name {
+  color: var(--accent);
+  font-weight: 600;
+  user-select: none;
+}
+
+.chip {
+  display: inline-block;
+  min-width: 52px;
+  padding: 1px 8px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--text);
+  outline: none;
+  white-space: pre;
+  caret-color: var(--accent);
+}
+
+.chip:focus {
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.chip:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted);
+}
+
 /* ---------- Toolbar / queue ---------- */
 
 .toolbar {

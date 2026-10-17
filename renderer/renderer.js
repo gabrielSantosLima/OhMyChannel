@@ -122,26 +122,66 @@ function expandTemplate(tpl, values) {
   return out;
 }
 
-function matchCommand(line) {
-  const match = line.trim().match(/^\/template\s+(\S+)(?:\s+(.*))?$/);
-  if (!match) return null;
-  return {
-    name: match[1],
-    values: match[2] ? match[2].split(/\s+/).filter(Boolean) : [],
-  };
+function isCommandWidget(node) {
+  return (
+    node &&
+    node.nodeType === Node.ELEMENT_NODE &&
+    node.classList.contains("cmd")
+  );
 }
 
-function expandValue(raw) {
-  return raw
-    .split("\n")
-    .map((line) => {
-      const parsed = matchCommand(line);
-      if (!parsed) return line;
-      const tpl = findTemplate(parsed.name);
-      if (!tpl) return line;
-      return expandTemplate(tpl, parsed.values);
-    })
-    .join("\n");
+function nodeText(node) {
+  if (node.nodeType === Node.TEXT_NODE) return node.textContent;
+  if (node.nodeName === "BR") return "\n";
+  return Array.from(node.childNodes).map(nodeText).join("");
+}
+
+function serializeNode(node) {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.textContent.replace(/\u200B/g, "");
+  }
+  if (node.nodeName === "BR") return "\n";
+  if (node.nodeType === Node.ELEMENT_NODE) {
+    if (isCommandWidget(node)) {
+      const tpl = findTemplate(node.dataset.template);
+      if (!tpl) return "";
+      const values = Array.from(node.querySelectorAll(".chip")).map(
+        (chip) => chip.textContent
+      );
+      return expandTemplate(tpl, values);
+    }
+    return Array.from(node.childNodes).map(serializeNode).join("");
+  }
+  return "";
+}
+
+function serializeField(root) {
+  return Array.from(root.childNodes).map(serializeNode).join("");
+}
+
+function createCommandWidget(tpl) {
+  const widget = document.createElement("span");
+  widget.className = "cmd";
+  widget.contentEditable = "false";
+  widget.dataset.template = tpl.name;
+
+  const name = document.createElement("span");
+  name.className = "cmd-name";
+  name.textContent = "/template " + tpl.name;
+  widget.appendChild(name);
+
+  tpl.params.forEach((param, index) => {
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    chip.contentEditable = "true";
+    chip.spellcheck = false;
+    chip.dataset.param = param;
+    chip.dataset.index = String(index);
+    chip.dataset.placeholder = param;
+    widget.appendChild(chip);
+  });
+
+  return widget;
 }
 
 async function loadTemplates() {
@@ -162,26 +202,92 @@ function createCommandField({ input, menu, preview, onChange }) {
   let menuItems = [];
   let menuIndex = 0;
 
-  const lineStart = () =>
-    input.value.lastIndexOf("\n", input.selectionStart - 1) + 1;
-
-  const lineEnd = () => {
-    const end = input.value.indexOf("\n", input.selectionStart);
-    return end === -1 ? input.value.length : end;
+  const selectionRange = () => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return null;
+    const range = sel.getRangeAt(0);
+    if (!input.contains(range.startContainer)) return null;
+    return range;
   };
 
-  const segmentBeforeCaret = () =>
-    input.value.slice(lineStart(), input.selectionStart);
+  const nodeFromCaret = () => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return null;
+    let node = sel.getRangeAt(0).startContainer;
+    if (node.nodeType === Node.TEXT_NODE) node = node.parentNode;
+    return node;
+  };
 
-  const currentLine = () => input.value.slice(lineStart(), lineEnd());
+  const chipFromCaret = () => {
+    const node = nodeFromCaret();
+    return node && node.closest ? node.closest(".chip") : null;
+  };
 
-  function setLine(text) {
-    const start = lineStart();
-    const end = lineEnd();
-    input.value = input.value.slice(0, start) + text + input.value.slice(end);
-    const pos = start + text.length;
+  const widgetFromCaret = () => {
+    const node = nodeFromCaret();
+    return node && node.closest ? node.closest(".cmd") : null;
+  };
+
+  const setCaret = (container, offset) => {
     input.focus();
-    input.setSelectionRange(pos, pos);
+    const range = document.createRange();
+    range.setStart(container, offset);
+    range.collapse(true);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  };
+
+  const caretBefore = (node) => {
+    const parent = node.parentNode;
+    const prev = node.previousSibling;
+    if (prev && prev.nodeType === Node.TEXT_NODE) {
+      setCaret(prev, prev.textContent.length);
+      return;
+    }
+    setCaret(parent, Array.prototype.indexOf.call(parent.childNodes, node));
+  };
+
+  const caretAfter = (node) => {
+    const parent = node.parentNode;
+    const next = node.nextSibling;
+    if (next && next.nodeType === Node.TEXT_NODE) {
+      setCaret(next, 0);
+      return;
+    }
+    setCaret(parent, Array.prototype.indexOf.call(parent.childNodes, node) + 1);
+  };
+
+  const caretIn = (node, atEnd, focusEl) => {
+    (focusEl || input).focus();
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    range.collapse(!atEnd);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  };
+
+  function lineTextBeforeCaret() {
+    if (widgetFromCaret()) return "";
+    const range = selectionRange();
+    if (!range) return "";
+    const start = range.startContainer;
+    if (start.nodeType !== Node.TEXT_NODE) return "";
+    let text = start.textContent.slice(0, range.startOffset);
+    let node = start;
+    while (node && node !== input) {
+      let prev = node.previousSibling;
+      while (prev) {
+        if (prev.nodeName === "BR") return text;
+        if (isCommandWidget(prev)) return "";
+        text = nodeText(prev) + text;
+        if (text.includes("\n")) return text;
+        prev = prev.previousSibling;
+      }
+      node = node.parentNode;
+    }
+    return text;
   }
 
   function hideMenu() {
@@ -224,8 +330,57 @@ function createCommandField({ input, menu, preview, onChange }) {
     if (menuItems.length) menuItems[menuIndex].apply();
   }
 
+  function replaceLineTextWith(segment, text) {
+    const range = selectionRange();
+    if (!range || range.startContainer.nodeType !== Node.TEXT_NODE) return;
+    const node = range.startContainer;
+    const from = Math.max(0, range.startOffset - segment.length);
+    const r = document.createRange();
+    r.setStart(node, from);
+    r.setEnd(node, range.startOffset);
+    r.deleteContents();
+    const next = document.createTextNode(text);
+    r.insertNode(next);
+    setCaret(next, next.length);
+  }
+
+  function insertTemplate(tpl) {
+    const range = selectionRange();
+    if (!range || range.startContainer.nodeType !== Node.TEXT_NODE) return;
+    const node = range.startContainer;
+    const segment = lineTextBeforeCaret();
+    const from = Math.max(0, range.startOffset - segment.length);
+    const r = document.createRange();
+    r.setStart(node, from);
+    r.setEnd(node, range.startOffset);
+    r.deleteContents();
+
+    hideMenu();
+
+    if (!tpl.params.length) {
+      const textNode = document.createTextNode(expandTemplate(tpl, []));
+      r.insertNode(textNode);
+      setCaret(textNode, textNode.length);
+    } else {
+      const widget = createCommandWidget(tpl);
+      r.insertNode(widget);
+      const spacer = document.createTextNode("\u200B");
+      widget.parentNode.insertBefore(spacer, widget.nextSibling);
+      focusChip(widget.querySelector(".chip"), false);
+    }
+
+    updatePreview();
+    onChange();
+  }
+
+  function focusChip(chip, atEnd) {
+    if (!chip) return;
+    caretIn(chip, atEnd, chip);
+    updatePreview();
+  }
+
   function updateMenu() {
-    const segment = segmentBeforeCaret();
+    const segment = lineTextBeforeCaret();
     if (!segment.startsWith("/")) {
       hideMenu();
       return;
@@ -244,7 +399,7 @@ function createCommandField({ input, menu, preview, onChange }) {
           label: c.name,
           hint: c.hint,
           apply: () => {
-            setLine("/template ");
+            replaceLineTextWith(segment, "/template ");
             updateMenu();
             updatePreview();
             onChange();
@@ -263,12 +418,7 @@ function createCommandField({ input, menu, preview, onChange }) {
             icon: "#",
             label: t.name,
             hint: t.pattern,
-            apply: () => {
-              setLine(`/template ${t.name} `);
-              hideMenu();
-              updatePreview();
-              onChange();
-            },
+            apply: () => insertTemplate(t),
           }))
       );
       return;
@@ -278,28 +428,86 @@ function createCommandField({ input, menu, preview, onChange }) {
   }
 
   function updatePreview() {
-    const parsed = matchCommand(currentLine());
-    if (!parsed) {
+    const widget = widgetFromCaret();
+    if (!widget) {
       preview.classList.add("hidden");
       preview.innerHTML = "";
       return;
     }
-    const tpl = findTemplate(parsed.name);
+    const tpl = findTemplate(widget.dataset.template);
+    const values = Array.from(widget.querySelectorAll(".chip")).map(
+      (chip) => chip.textContent
+    );
     preview.classList.remove("hidden");
     if (!tpl) {
-      preview.innerHTML = `Template <strong>${escapeHtml(
-        parsed.name
-      )}</strong> not found.`;
+      preview.innerHTML = "Template not found.";
       return;
     }
-    const missing = tpl.params.filter((_p, i) => !parsed.values[i]);
+    const missing = tpl.params.filter((_p, i) => !(values[i] || "").trim());
     let html = `Preview: <strong>${escapeHtml(
-      expandTemplate(tpl, parsed.values)
+      expandTemplate(tpl, values)
     )}</strong>`;
     if (missing.length) {
       html += ` &middot; missing: ${escapeHtml(missing.join(", "))}`;
     }
     preview.innerHTML = html;
+  }
+
+  function chipOffset(chip, range) {
+    if (!range || !chip.contains(range.startContainer)) return 0;
+    const pre = document.createRange();
+    pre.selectNodeContents(chip);
+    pre.setEnd(range.startContainer, range.startOffset);
+    return pre.toString().length;
+  }
+
+  function chipIsEmpty(chip) {
+    return chip.textContent.replace(/\u200B/g, "").length === 0;
+  }
+
+  function handleChipKey(event, chip) {
+    const widget = chip.closest(".cmd");
+    const chips = Array.from(widget.querySelectorAll(".chip"));
+    const index = chips.indexOf(chip);
+    const range = selectionRange();
+    const offset = chipOffset(chip, range);
+    const length = chip.textContent.length;
+    const dir = event.shiftKey ? -1 : 1;
+
+    if (event.key === "Tab" || event.key === "Enter") {
+      event.preventDefault();
+      const target = chips[index + dir];
+      if (target) focusChip(target, dir < 0);
+      else if (dir > 0) caretAfter(widget);
+      else caretBefore(widget);
+      return true;
+    }
+
+    if (event.key === "ArrowLeft" && !event.shiftKey && offset === 0) {
+      event.preventDefault();
+      const target = chips[index - 1];
+      if (target) focusChip(target, true);
+      else caretBefore(widget);
+      return true;
+    }
+
+    if (event.key === "ArrowRight" && !event.shiftKey && offset === length) {
+      event.preventDefault();
+      const target = chips[index + 1];
+      if (target) focusChip(target, false);
+      else caretAfter(widget);
+      return true;
+    }
+
+    if (event.key === "Backspace" && offset === 0 && chipIsEmpty(chip)) {
+      event.preventDefault();
+      const target = chips[index - 1];
+      if (target) focusChip(target, true);
+      else caretBefore(widget);
+      return true;
+    }
+
+    return false;
   }
 
   input.addEventListener("input", () => {
@@ -309,7 +517,27 @@ function createCommandField({ input, menu, preview, onChange }) {
   });
 
   input.addEventListener("keydown", (event) => {
-    if (menu.classList.contains("hidden")) return;
+    const chip = chipFromCaret();
+    if (chip && handleChipKey(event, chip)) return;
+
+    const menuOpen = !menu.classList.contains("hidden");
+
+    if (event.key === "Enter") {
+      event.preventDefault();
+      if (menuOpen) {
+        selectActive();
+        return;
+      }
+      if (input.dataset.multiline === "true") {
+        document.execCommand("insertLineBreak");
+        updatePreview();
+        onChange();
+      }
+      return;
+    }
+
+    if (!menuOpen) return;
+
     if (event.key === "ArrowDown") {
       event.preventDefault();
       menuIndex = (menuIndex + 1) % menuItems.length;
@@ -318,12 +546,38 @@ function createCommandField({ input, menu, preview, onChange }) {
       event.preventDefault();
       menuIndex = (menuIndex - 1 + menuItems.length) % menuItems.length;
       showMenu(menuItems);
-    } else if (event.key === "Enter" || event.key === "Tab") {
+    } else if (event.key === "Tab") {
       event.preventDefault();
       selectActive();
     } else if (event.key === "Escape") {
       hideMenu();
     }
+  });
+
+  input.addEventListener("paste", (event) => {
+    event.preventDefault();
+    const clipboard = event.clipboardData || window.clipboardData;
+    let text = clipboard ? clipboard.getData("text/plain") : "";
+    if (!text) return;
+    if (input.dataset.multiline !== "true") {
+      text = text.replace(/[\r\n]+/g, " ");
+    }
+    const max = Number(input.dataset.max || 0);
+    if (max) {
+      const current = serializeField(input).length;
+      text = text.slice(0, Math.max(0, max - current));
+    }
+    document.execCommand("insertText", false, text);
+    updateMenu();
+    updatePreview();
+    onChange();
+  });
+
+  input.addEventListener("beforeinput", (event) => {
+    const max = Number(input.dataset.max || 0);
+    if (!max || !event.data) return;
+    const current = serializeField(input).length;
+    if (current + event.data.length > max) event.preventDefault();
   });
 
   return { updateMenu, updatePreview, hideMenu };
@@ -347,11 +601,11 @@ function statusText(item) {
 }
 
 function updateItemCounters(item) {
-  const title = expandValue(item.dom.title.value);
+  const title = serializeField(item.dom.title);
   item.dom.titleCount.textContent = `${title.length} / 100`;
   item.dom.titleCount.style.color = title.length > 100 ? "var(--error)" : "";
 
-  const description = expandValue(item.dom.desc.value);
+  const description = serializeField(item.dom.desc);
   item.dom.descCount.textContent = `${description.length} / 5000`;
   item.dom.descCount.style.color =
     description.length > 5000 ? "var(--error)" : "";
@@ -368,7 +622,7 @@ function refreshItem(item) {
   item.dom.cancel.classList.toggle("hidden", !uploading);
   item.dom.remove.classList.toggle("hidden", uploading);
   item.dom.progress.classList.toggle("hidden", !uploading && !done);
-  item.dom.upload.disabled = done || !expandValue(item.dom.title.value).trim();
+  item.dom.upload.disabled = done || !serializeField(item.dom.title).trim();
 }
 
 function refreshQueueInfo() {
@@ -409,12 +663,13 @@ function addItem(filePath) {
   head.appendChild(file);
   head.appendChild(status);
 
-  const titleInput = document.createElement("input");
-  titleInput.type = "text";
-  titleInput.maxLength = 200;
-  titleInput.autocomplete = "off";
-  titleInput.value = fileName.replace(/\.[^.]+$/, "");
-  titleInput.placeholder = "Video title or /template ...";
+  const titleInput = document.createElement("div");
+  titleInput.className = "cmd-field";
+  titleInput.contentEditable = "true";
+  titleInput.setAttribute("spellcheck", "false");
+  titleInput.dataset.placeholder = "Video title or /template ...";
+  titleInput.dataset.max = "200";
+  titleInput.textContent = fileName.replace(/\.[^.]+$/, "");
   const titleCount = document.createElement("span");
   titleCount.className = "counter";
   const titleMenu = document.createElement("div");
@@ -427,10 +682,13 @@ function addItem(filePath) {
   titleLabel.textContent = "Title";
   titleField.append(titleLabel, titleInput, titleCount, titleMenu, titlePreview);
 
-  const descInput = document.createElement("textarea");
-  descInput.maxLength = 5000;
-  descInput.rows = 3;
-  descInput.placeholder = "Video description or /template ...";
+  const descInput = document.createElement("div");
+  descInput.className = "cmd-field";
+  descInput.contentEditable = "true";
+  descInput.setAttribute("spellcheck", "false");
+  descInput.dataset.placeholder = "Video description or /template ...";
+  descInput.dataset.max = "5000";
+  descInput.dataset.multiline = "true";
   const descCount = document.createElement("span");
   descCount.className = "counter";
   const descMenu = document.createElement("div");
@@ -537,7 +795,7 @@ function removeItem(item) {
 async function startUpload(item) {
   if (item.status === "uploading" || item.status === "done") return;
 
-  const title = expandValue(item.dom.title.value).slice(0, 100);
+  const title = serializeField(item.dom.title).slice(0, 100);
   if (!title.trim()) {
     setMessage("Every upload needs a title.", "error");
     return;
@@ -556,7 +814,7 @@ async function startUpload(item) {
       id: item.id,
       filePath: item.filePath,
       title,
-      description: expandValue(item.dom.desc.value).slice(0, 5000),
+      description: serializeField(item.dom.desc).slice(0, 5000),
     });
     item.status = "done";
     item.percent = 100;
