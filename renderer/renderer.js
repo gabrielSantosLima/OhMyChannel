@@ -1429,7 +1429,7 @@ function defaultLayer() {
     text: "{episode}",
     fontFamily: preferred,
     fontWeight: hasBold ? 700 : 400,
-    fontSize: 238,
+    fontSize: 357,
     color: "#efe6d5",
     x: 60,
     y: 760,
