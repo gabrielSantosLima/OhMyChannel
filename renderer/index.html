@@ -44,6 +44,14 @@
             </svg>
             <span>Templates</span>
           </button>
+          <button class="nav-item" data-view="thumbnails">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path
+                d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"
+              />
+            </svg>
+            <span>Thumbnails</span>
+          </button>
           <button class="nav-item" data-view="settings">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
               <path
@@ -97,6 +105,33 @@
             <span id="tplError" class="tpl-error"></span>
           </div>
           <div id="tplList" class="tpl-list"></div>
+        </section>
+
+        <section id="view-thumbnails" class="view">
+          <h2>Thumbnails</h2>
+          <div class="thumb-editor">
+            <div class="thumb-form">
+              <div class="thumb-bg-row">
+                <input id="thumbName" type="text" placeholder="Template name (e.g. gameplay)" />
+                <button id="thumbBgBtn">Choose background</button>
+                <span id="thumbBgName" class="thumb-bg-name">No background</span>
+                <button id="thumbBgClear" class="ghost hidden">Remove</button>
+              </div>
+              <div id="thumbLayers" class="thumb-layers"></div>
+              <button id="thumbAddLayer">Add text layer</button>
+              <div id="thumbValues" class="thumb-values hidden"></div>
+              <div class="thumb-save">
+                <button id="thumbSave" class="primary">Save template</button>
+                <button id="thumbReset" class="ghost">Reset</button>
+                <span id="thumbError" class="tpl-error"></span>
+              </div>
+            </div>
+            <div class="thumb-preview">
+              <span class="muted">Preview</span>
+              <img id="thumbPreviewImg" alt="Thumbnail preview" />
+            </div>
+          </div>
+          <div id="thumbList" class="tpl-list"></div>
         </section>
 
         <section id="view-settings" class="view">

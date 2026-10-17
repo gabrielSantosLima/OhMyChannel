@@ -20,12 +20,31 @@ const els = {
   tplAdd: document.getElementById("tplAdd"),
   tplError: document.getElementById("tplError"),
   tplList: document.getElementById("tplList"),
+  thumbName: document.getElementById("thumbName"),
+  thumbBgBtn: document.getElementById("thumbBgBtn"),
+  thumbBgName: document.getElementById("thumbBgName"),
+  thumbBgClear: document.getElementById("thumbBgClear"),
+  thumbLayers: document.getElementById("thumbLayers"),
+  thumbAddLayer: document.getElementById("thumbAddLayer"),
+  thumbValues: document.getElementById("thumbValues"),
+  thumbSave: document.getElementById("thumbSave"),
+  thumbReset: document.getElementById("thumbReset"),
+  thumbError: document.getElementById("thumbError"),
+  thumbPreviewImg: document.getElementById("thumbPreviewImg"),
+  thumbList: document.getElementById("thumbList"),
 };
 
 const items = [];
 const itemById = new Map();
 let templates = [];
 let playlists = [];
+let thumbnailTemplates = [];
+let thumbnailFonts = [];
+let thumbBackground = null;
+let thumbLayers = [];
+let thumbValues = {};
+let editingThumbnailId = null;
+let thumbPreviewTimer = null;
 let settings = { theme: "dark", background: true, maxParallel: 4 };
 let idSeed = 0;
 
@@ -1148,6 +1167,395 @@ async function addTemplate() {
 
 els.tplAdd.addEventListener("click", addTemplate);
 
+/* ---------- Thumbnail templates ---------- */
+
+const THUMB_WIDTH = 1920;
+const THUMB_HEIGHT = 1080;
+
+function thumbField(label, control) {
+  const wrap = document.createElement("div");
+  wrap.className = "thumb-field";
+  const span = document.createElement("span");
+  span.textContent = label;
+  wrap.append(span, control);
+  return wrap;
+}
+
+function numberInput(value) {
+  const input = document.createElement("input");
+  input.type = "number";
+  input.value = String(value ?? 0);
+  return input;
+}
+
+function colorInput(value) {
+  const input = document.createElement("input");
+  input.type = "color";
+  input.value = /^#[0-9a-f]{6}$/i.test(value || "") ? value : "#000000";
+  return input;
+}
+
+function selectInput(options, value) {
+  const select = document.createElement("select");
+  options.forEach((option) => {
+    const el = document.createElement("option");
+    el.value = String(option);
+    el.textContent = String(option);
+    select.appendChild(el);
+  });
+  select.value = String(value);
+  return select;
+}
+
+function bindLayer(control, key, layer, { numeric = false, event = "input" } = {}) {
+  control.addEventListener(event, () => {
+    layer[key] = numeric ? Number(control.value) || 0 : control.value;
+    if (key === "text") renderThumbValueInputs();
+    scheduleThumbPreview();
+  });
+}
+
+function defaultLayer() {
+  const family = thumbnailFonts.length ? thumbnailFonts[0].name : "Lato";
+  const entry = thumbnailFonts.find((font) => font.name === family);
+  const hasBold = entry ? entry.weights.includes(700) : false;
+  return {
+    text: "{episode}",
+    fontFamily: family,
+    fontWeight: hasBold ? 700 : 400,
+    fontSize: 120,
+    color: "#ffffff",
+    x: 0,
+    y: 820,
+    width: THUMB_WIDTH,
+    align: "center",
+    strokeColor: "#000000",
+    strokeWidth: 0,
+    shadowColor: "#000000",
+    shadowBlur: 0,
+    shadowX: 0,
+    shadowY: 0,
+  };
+}
+
+function buildLayerRow(layer, index) {
+  const row = document.createElement("div");
+  row.className = "thumb-layer";
+
+  const head = document.createElement("div");
+  head.className = "thumb-layer-head";
+  const title = document.createElement("span");
+  title.textContent = "Text layer " + (index + 1);
+  const remove = document.createElement("button");
+  remove.className = "ghost";
+  remove.textContent = "Remove";
+  remove.addEventListener("click", () => {
+    thumbLayers.splice(index, 1);
+    renderThumbLayerRows();
+    renderThumbValueInputs();
+    scheduleThumbPreview();
+  });
+  head.append(title, remove);
+  row.appendChild(head);
+
+  const text = document.createElement("input");
+  text.type = "text";
+  text.value = layer.text;
+  text.placeholder = "Text, e.g. EPISODE {episode}";
+  bindLayer(text, "text", layer);
+  row.appendChild(thumbField("Text", text));
+
+  const grid = document.createElement("div");
+  grid.className = "thumb-grid";
+
+  const font = document.createElement("select");
+  thumbnailFonts.forEach((entry) => {
+    const option = document.createElement("option");
+    option.value = entry.name;
+    option.textContent = entry.name;
+    font.appendChild(option);
+  });
+  font.value = layer.fontFamily;
+  bindLayer(font, "fontFamily", layer, { event: "change" });
+  grid.appendChild(thumbField("Font", font));
+
+  const weight = selectInput(
+    [100, 200, 300, 400, 500, 600, 700, 800, 900],
+    layer.fontWeight
+  );
+  bindLayer(weight, "fontWeight", layer, { numeric: true, event: "change" });
+  grid.appendChild(thumbField("Weight", weight));
+
+  const size = numberInput(layer.fontSize);
+  bindLayer(size, "fontSize", layer, { numeric: true });
+  grid.appendChild(thumbField("Size", size));
+
+  const color = colorInput(layer.color);
+  bindLayer(color, "color", layer);
+  grid.appendChild(thumbField("Color", color));
+
+  const align = selectInput(["left", "center", "right"], layer.align);
+  bindLayer(align, "align", layer, { event: "change" });
+  grid.appendChild(thumbField("Align", align));
+
+  const x = numberInput(layer.x);
+  bindLayer(x, "x", layer, { numeric: true });
+  grid.appendChild(thumbField("X", x));
+
+  const y = numberInput(layer.y);
+  bindLayer(y, "y", layer, { numeric: true });
+  grid.appendChild(thumbField("Y", y));
+
+  const width = numberInput(layer.width);
+  bindLayer(width, "width", layer, { numeric: true });
+  grid.appendChild(thumbField("Width", width));
+
+  const strokeColor = colorInput(layer.strokeColor);
+  bindLayer(strokeColor, "strokeColor", layer);
+  grid.appendChild(thumbField("Stroke", strokeColor));
+
+  const strokeWidth = numberInput(layer.strokeWidth);
+  bindLayer(strokeWidth, "strokeWidth", layer, { numeric: true });
+  grid.appendChild(thumbField("Stroke px", strokeWidth));
+
+  const shadowColor = colorInput(layer.shadowColor);
+  bindLayer(shadowColor, "shadowColor", layer);
+  grid.appendChild(thumbField("Shadow", shadowColor));
+
+  const shadowBlur = numberInput(layer.shadowBlur);
+  bindLayer(shadowBlur, "shadowBlur", layer, { numeric: true });
+  grid.appendChild(thumbField("Blur", shadowBlur));
+
+  row.appendChild(grid);
+  return row;
+}
+
+function renderThumbLayerRows() {
+  els.thumbLayers.innerHTML = "";
+  thumbLayers.forEach((layer, index) => {
+    els.thumbLayers.appendChild(buildLayerRow(layer, index));
+  });
+}
+
+function collectPlaceholders() {
+  const keys = new Set();
+  thumbLayers.forEach((layer) => {
+    const matches = String(layer.text).match(/\{(\w+)\}/g) || [];
+    matches.forEach((match) => keys.add(match.slice(1, -1)));
+  });
+  return [...keys];
+}
+
+function renderThumbValueInputs() {
+  const keys = collectPlaceholders();
+  els.thumbValues.innerHTML = "";
+  if (!keys.length) {
+    els.thumbValues.classList.add("hidden");
+    return;
+  }
+  els.thumbValues.classList.remove("hidden");
+  keys.forEach((key) => {
+    if (thumbValues[key] === undefined) {
+      thumbValues[key] =
+        key === "episode" ? "12" : key === "title" ? "Sample Title" : key;
+    }
+    const input = document.createElement("input");
+    input.type = "text";
+    input.value = thumbValues[key];
+    input.placeholder = key;
+    input.addEventListener("input", () => {
+      thumbValues[key] = input.value;
+      scheduleThumbPreview();
+    });
+    els.thumbValues.appendChild(thumbField("{" + key + "}", input));
+  });
+}
+
+function buildThumbTemplate(name) {
+  return {
+    id: editingThumbnailId,
+    name: name || els.thumbName.value.trim() || "Untitled",
+    width: THUMB_WIDTH,
+    height: THUMB_HEIGHT,
+    backgroundPath: thumbBackground,
+    layers: thumbLayers,
+  };
+}
+
+async function updateThumbPreview() {
+  try {
+    const dataUrl = await window.api.generateThumbnail({
+      template: buildThumbTemplate(),
+      values: thumbValues,
+      asDataUrl: true,
+    });
+    els.thumbPreviewImg.src = dataUrl;
+    els.thumbError.textContent = "";
+  } catch (err) {
+    els.thumbError.textContent = err.message;
+  }
+}
+
+function scheduleThumbPreview() {
+  clearTimeout(thumbPreviewTimer);
+  thumbPreviewTimer = setTimeout(updateThumbPreview, 250);
+}
+
+function updateThumbBackgroundUi() {
+  els.thumbBgName.textContent = thumbBackground
+    ? thumbBackground.split(/[\\/]/).pop()
+    : "No background";
+  els.thumbBgClear.classList.toggle("hidden", !thumbBackground);
+}
+
+function resetEditor() {
+  editingThumbnailId = null;
+  els.thumbName.value = "";
+  thumbBackground = null;
+  updateThumbBackgroundUi();
+  thumbValues = {};
+  thumbLayers = [defaultLayer()];
+  renderThumbLayerRows();
+  renderThumbValueInputs();
+  els.thumbError.textContent = "";
+  updateThumbPreview();
+}
+
+function editThumbTemplate(tpl) {
+  editingThumbnailId = tpl.id;
+  els.thumbName.value = tpl.name;
+  thumbBackground = tpl.backgroundPath || null;
+  updateThumbBackgroundUi();
+  thumbValues = {};
+  thumbLayers = (tpl.layers || []).map((layer) => ({
+    ...defaultLayer(),
+    ...layer,
+  }));
+  renderThumbLayerRows();
+  renderThumbValueInputs();
+  els.thumbError.textContent = "";
+  showView("thumbnails");
+  updateThumbPreview();
+}
+
+async function saveThumbTemplate() {
+  const name = els.thumbName.value.trim();
+  if (!name) {
+    els.thumbError.textContent = "Enter the template name.";
+    return;
+  }
+  const template = {
+    id: editingThumbnailId || undefined,
+    name,
+    width: THUMB_WIDTH,
+    height: THUMB_HEIGHT,
+    backgroundPath: thumbBackground,
+    layers: thumbLayers,
+  };
+  const index = thumbnailTemplates.findIndex((t) => t.id === template.id);
+  if (index === -1) thumbnailTemplates.push(template);
+  else thumbnailTemplates[index] = template;
+  try {
+    thumbnailTemplates = await window.api.saveThumbnailTemplates(
+      thumbnailTemplates
+    );
+    renderThumbTemplateList();
+    resetEditor();
+    setMessage("Thumbnail template saved.", "ok");
+  } catch (err) {
+    els.thumbError.textContent = err.message;
+  }
+}
+
+function renderThumbTemplateList() {
+  els.thumbList.innerHTML = "";
+  if (!thumbnailTemplates.length) {
+    const empty = document.createElement("div");
+    empty.className = "tpl-empty";
+    empty.textContent = "No thumbnail templates yet.";
+    els.thumbList.appendChild(empty);
+    return;
+  }
+  thumbnailTemplates.forEach((tpl) => {
+    const item = document.createElement("div");
+    item.className = "tpl-item";
+
+    const info = document.createElement("div");
+    info.className = "tpl-info";
+    const name = document.createElement("span");
+    name.className = "tpl-name";
+    name.textContent = tpl.name;
+    const detail = document.createElement("span");
+    detail.className = "tpl-detail";
+    detail.textContent =
+      `${tpl.width}x${tpl.height} | ` +
+      (tpl.layers.length ? tpl.layers.length + " layer(s)" : "no layers");
+    info.append(name, detail);
+
+    const buttons = document.createElement("div");
+    buttons.className = "tpl-item-actions";
+    const edit = document.createElement("button");
+    edit.className = "ghost";
+    edit.textContent = "Edit";
+    edit.addEventListener("click", () => editThumbTemplate(tpl));
+    const del = document.createElement("button");
+    del.className = "danger";
+    del.textContent = "Delete";
+    del.addEventListener("click", async () => {
+      thumbnailTemplates = thumbnailTemplates.filter((t) => t.id !== tpl.id);
+      thumbnailTemplates = await window.api.saveThumbnailTemplates(
+        thumbnailTemplates
+      );
+      renderThumbTemplateList();
+    });
+    buttons.append(edit, del);
+
+    item.append(info, buttons);
+    els.thumbList.appendChild(item);
+  });
+}
+
+async function loadThumbnailFonts() {
+  try {
+    thumbnailFonts = await window.api.listThumbnailFonts();
+  } catch {
+    thumbnailFonts = [];
+  }
+}
+
+async function loadThumbnailTemplates() {
+  try {
+    thumbnailTemplates = await window.api.listThumbnailTemplates();
+  } catch {
+    thumbnailTemplates = [];
+  }
+  renderThumbTemplateList();
+}
+
+els.thumbBgBtn.addEventListener("click", async () => {
+  const path = await window.api.pickThumbnail();
+  if (!path) return;
+  thumbBackground = path;
+  updateThumbBackgroundUi();
+  scheduleThumbPreview();
+});
+
+els.thumbBgClear.addEventListener("click", () => {
+  thumbBackground = null;
+  updateThumbBackgroundUi();
+  scheduleThumbPreview();
+});
+
+els.thumbAddLayer.addEventListener("click", () => {
+  thumbLayers.push(defaultLayer());
+  renderThumbLayerRows();
+  renderThumbValueInputs();
+  scheduleThumbPreview();
+});
+
+els.thumbSave.addEventListener("click", saveThumbTemplate);
+els.thumbReset.addEventListener("click", resetEditor);
+
 /* ---------- Auth ---------- */
 
 function setAuthUi(authenticated) {
@@ -1219,6 +1627,9 @@ async function init() {
   renderSettingsForm();
   await loadTemplates();
   renderTemplateList();
+  await loadThumbnailFonts();
+  await loadThumbnailTemplates();
+  resetEditor();
   await refreshAuth();
   await loadPlaylists();
   refreshQueueInfo();

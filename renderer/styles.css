@@ -729,6 +729,150 @@ label {
   border-color: var(--error);
 }
 
+.tpl-item-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ---------- Thumbnails editor ---------- */
+
+.thumb-editor {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 18px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.thumb-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-width: 340px;
+  max-width: 640px;
+}
+
+.thumb-bg-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.thumb-bg-row input[type="text"] {
+  flex: 1;
+  min-width: 160px;
+}
+
+.thumb-bg-name {
+  font-size: 12px;
+  color: var(--muted);
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.thumb-layers {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.thumb-layer {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg-soft);
+}
+
+.thumb-layer-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.thumb-layer-head button {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.thumb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  gap: 8px;
+}
+
+.thumb-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.thumb-field > span {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.thumb-field input,
+.thumb-field select {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 6px 8px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+}
+
+.thumb-field input:focus,
+.thumb-field select:focus {
+  border-color: var(--accent);
+}
+
+.thumb-field input[type="color"] {
+  padding: 2px;
+  height: 32px;
+}
+
+.thumb-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.thumb-preview {
+  position: sticky;
+  top: 0;
+}
+
+.thumb-preview img {
+  width: 320px;
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-soft);
+  display: block;
+  margin-top: 6px;
+}
+
+.thumb-save {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 /* ---------- Settings ---------- */
 
 .setting {

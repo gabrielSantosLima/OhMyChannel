@@ -53,8 +53,20 @@ const {
   GenerateThumbnailUseCase,
 } = require("./src/domain/useCases/GenerateThumbnailUseCase");
 const {
+  ListThumbnailTemplatesUseCase,
+} = require("./src/domain/useCases/ListThumbnailTemplatesUseCase");
+const {
+  SaveThumbnailTemplatesUseCase,
+} = require("./src/domain/useCases/SaveThumbnailTemplatesUseCase");
+const {
+  ListThumbnailFontsUseCase,
+} = require("./src/domain/useCases/ListThumbnailFontsUseCase");
+const {
   ThumbnailRenderer,
 } = require("./src/domain/services/ThumbnailRenderer");
+const {
+  ThumbnailTemplateStore,
+} = require("./src/domain/services/ThumbnailTemplateStore");
 
 const { AuthController } = require("./src/controllers/AuthController");
 const { UploadController } = require("./src/controllers/UploadController");
@@ -146,10 +158,22 @@ function buildContainer() {
   });
 
   const thumbnailRenderer = new ThumbnailRenderer({ fontsDir: FONTS_DIR });
+  const thumbnailTemplateStore = new ThumbnailTemplateStore({
+    filePath: path.join(app.getPath("userData"), "thumbnail-templates.json"),
+  });
   thumbnailController = new ThumbnailController({
     generateThumbnailUseCase: new GenerateThumbnailUseCase({
       thumbnailRenderer,
       outputDir: path.join(app.getPath("userData"), "thumbnails"),
+    }),
+    listThumbnailTemplatesUseCase: new ListThumbnailTemplatesUseCase({
+      thumbnailTemplateStore,
+    }),
+    saveThumbnailTemplatesUseCase: new SaveThumbnailTemplatesUseCase({
+      thumbnailTemplateStore,
+    }),
+    listThumbnailFontsUseCase: new ListThumbnailFontsUseCase({
+      thumbnailRenderer,
     }),
   });
 }
@@ -385,6 +409,11 @@ function registerIpc() {
   ipcMain.handle("thumbnails:generate", (_event, payload) =>
     thumbnailController.generate(payload)
   );
+  ipcMain.handle("thumbnails:list", () => thumbnailController.list());
+  ipcMain.handle("thumbnails:save", (_event, templates) =>
+    thumbnailController.save(templates)
+  );
+  ipcMain.handle("thumbnails:fonts", () => thumbnailController.fonts());
 
   ipcMain.handle("dialog:pickVideo", async () => {
     const result = await dialog.showOpenDialog(mainWindow, {

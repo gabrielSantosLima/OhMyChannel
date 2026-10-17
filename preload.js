@@ -14,6 +14,10 @@ contextBridge.exposeInMainWorld("api", {
   listPlaylists: () => ipcRenderer.invoke("playlists:list"),
   generateThumbnail: (payload) =>
     ipcRenderer.invoke("thumbnails:generate", payload),
+  listThumbnailTemplates: () => ipcRenderer.invoke("thumbnails:list"),
+  saveThumbnailTemplates: (list) =>
+    ipcRenderer.invoke("thumbnails:save", list),
+  listThumbnailFonts: () => ipcRenderer.invoke("thumbnails:fonts"),
   getSettings: () => ipcRenderer.invoke("settings:get"),
   saveSettings: (changes) => ipcRenderer.invoke("settings:save", changes),
   onProgress: (cb) =>
