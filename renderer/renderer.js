@@ -161,6 +161,12 @@ function serializeField(root) {
   return Array.from(root.childNodes).map(serializeNode).join("");
 }
 
+function toIsoOrNull(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
 function createCommandWidget(tpl) {
   const widget = document.createElement("span");
   widget.className = "cmd";
@@ -748,6 +754,15 @@ function addItem(filePath) {
   playlistField.append(playlistLabel, playlistSelect);
   options.appendChild(playlistField);
 
+  const publishField = document.createElement("div");
+  publishField.className = "opt";
+  const publishLabel = document.createElement("label");
+  publishLabel.textContent = "Publish at";
+  const publishInput = document.createElement("input");
+  publishInput.type = "datetime-local";
+  publishField.append(publishLabel, publishInput);
+  options.appendChild(publishField);
+
   const actions = document.createElement("div");
   actions.className = "card-actions";
   const upload = document.createElement("button");
@@ -782,6 +797,7 @@ function addItem(filePath) {
     desc: descInput,
     descCount,
     playlist: playlistSelect,
+    publish: publishInput,
     upload,
     cancel,
     remove,
@@ -935,6 +951,7 @@ async function startUpload(item) {
       title,
       description: serializeField(item.dom.desc).slice(0, 5000),
       playlistId: item.dom.playlist.value || null,
+      publishAt: toIsoOrNull(item.dom.publish.value),
     });
     item.status = "done";
     item.percent = 100;

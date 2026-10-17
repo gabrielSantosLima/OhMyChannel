@@ -10,19 +10,34 @@ class VideoMetadata {
     categoryId = CATEGORY_ID,
     privacyStatus = PRIVACY_STATUS,
     selfDeclaredMadeForKids = false,
+    publishAt = null,
   }) {
     this.title = title;
     this.description = description;
     this.categoryId = categoryId;
     this.privacyStatus = privacyStatus;
     this.selfDeclaredMadeForKids = selfDeclaredMadeForKids;
+    this.publishAt = publishAt;
   }
 
-  static fromInput({ title, description }) {
+  static fromInput({ title, description, publishAt }) {
     return new VideoMetadata({
       title: String(title || "").slice(0, MAX_TITLE_LENGTH),
       description: String(description || "").slice(0, MAX_DESCRIPTION_LENGTH),
+      publishAt: VideoMetadata.normalizePublishAt(publishAt),
     });
+  }
+
+  static normalizePublishAt(value) {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      throw new Error("Invalid publish date.");
+    }
+    if (date.getTime() <= Date.now()) {
+      throw new Error("Publish date must be in the future.");
+    }
+    return date.toISOString();
   }
 
   toSnippet() {
@@ -34,10 +49,12 @@ class VideoMetadata {
   }
 
   toStatus() {
-    return {
-      privacyStatus: this.privacyStatus,
+    const status = {
+      privacyStatus: this.publishAt ? PRIVACY_STATUS : this.privacyStatus,
       selfDeclaredMadeForKids: this.selfDeclaredMadeForKids,
     };
+    if (this.publishAt) status.publishAt = this.publishAt;
+    return status;
   }
 }
 

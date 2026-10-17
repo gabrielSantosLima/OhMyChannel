@@ -6,8 +6,8 @@ class UploadVideoUseCase {
     this.uploads = new Map();
   }
 
-  async execute({ id, filePath, title, description, playlistId, onProgress }) {
-    const metadata = VideoMetadata.fromInput({ title, description });
+  async execute({ id, filePath, title, description, playlistId, publishAt, onProgress }) {
+    const metadata = VideoMetadata.fromInput({ title, description, publishAt });
     try {
       const result = await this.youtubeService.upload({
         metadata,
