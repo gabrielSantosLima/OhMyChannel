@@ -12,6 +12,8 @@ contextBridge.exposeInMainWorld("api", {
   listTemplates: () => ipcRenderer.invoke("templates:list"),
   saveTemplates: (list) => ipcRenderer.invoke("templates:save", list),
   listPlaylists: () => ipcRenderer.invoke("playlists:list"),
+  generateThumbnail: (payload) =>
+    ipcRenderer.invoke("thumbnails:generate", payload),
   getSettings: () => ipcRenderer.invoke("settings:get"),
   saveSettings: (changes) => ipcRenderer.invoke("settings:save", changes),
   onProgress: (cb) =>

@@ -49,6 +49,12 @@ const {
 const {
   ListPlaylistsUseCase,
 } = require("./src/domain/useCases/ListPlaylistsUseCase");
+const {
+  GenerateThumbnailUseCase,
+} = require("./src/domain/useCases/GenerateThumbnailUseCase");
+const {
+  ThumbnailRenderer,
+} = require("./src/domain/services/ThumbnailRenderer");
 
 const { AuthController } = require("./src/controllers/AuthController");
 const { UploadController } = require("./src/controllers/UploadController");
@@ -59,11 +65,15 @@ const {
   SettingsController,
 } = require("./src/controllers/SettingsController");
 const { PlaylistController } = require("./src/controllers/PlaylistController");
+const {
+  ThumbnailController,
+} = require("./src/controllers/ThumbnailController");
 
 const SCOPES = [
   "https://www.googleapis.com/auth/youtube.upload",
   "https://www.googleapis.com/auth/youtube.force-ssl",
 ];
+const FONTS_DIR = path.join(__dirname, "assets", "fonts");
 const SECRETS_PATH = path.join(__dirname, "client_secrets.json");
 const ICON_PATH = path.join(__dirname, "assets", "icon.png");
 const ICO_PATH = path.join(__dirname, "assets", "icon.ico");
@@ -77,6 +87,7 @@ let uploadController = null;
 let templateController = null;
 let settingsController = null;
 let playlistController = null;
+let thumbnailController = null;
 
 const activeUploads = new Map();
 const uploadQueue = [];
@@ -132,6 +143,14 @@ function buildContainer() {
 
   playlistController = new PlaylistController({
     listPlaylistsUseCase: new ListPlaylistsUseCase({ youtubeService }),
+  });
+
+  const thumbnailRenderer = new ThumbnailRenderer({ fontsDir: FONTS_DIR });
+  thumbnailController = new ThumbnailController({
+    generateThumbnailUseCase: new GenerateThumbnailUseCase({
+      thumbnailRenderer,
+      outputDir: path.join(app.getPath("userData"), "thumbnails"),
+    }),
   });
 }
 
@@ -362,6 +381,10 @@ function registerIpc() {
   });
 
   ipcMain.handle("playlists:list", () => playlistController.list());
+
+  ipcMain.handle("thumbnails:generate", (_event, payload) =>
+    thumbnailController.generate(payload)
+  );
 
   ipcMain.handle("dialog:pickVideo", async () => {
     const result = await dialog.showOpenDialog(mainWindow, {
