@@ -852,6 +852,14 @@ label {
   gap: 8px;
 }
 
+.card-thumb-values {
+  margin-top: 6px;
+}
+
+.card-thumb-values .thumb-field {
+  min-width: 90px;
+}
+
 .thumb-preview {
   position: sticky;
   top: 0;

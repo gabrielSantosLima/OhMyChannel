@@ -264,6 +264,79 @@ function applyThumbnail(item, path) {
   item.dom.thumbnailClear.classList.toggle("hidden", !path);
 }
 
+function fillThumbTemplateSelect(select) {
+  const current = select.value;
+  select.innerHTML = "";
+  const none = document.createElement("option");
+  none.value = "";
+  none.textContent = "None";
+  select.appendChild(none);
+  thumbnailTemplates.forEach((tpl) => {
+    const option = document.createElement("option");
+    option.value = tpl.id;
+    option.textContent = tpl.name;
+    select.appendChild(option);
+  });
+  select.value = thumbnailTemplates.some((tpl) => tpl.id === current)
+    ? current
+    : "";
+}
+
+function thumbnailPlaceholders(tpl) {
+  const keys = new Set();
+  (tpl.layers || []).forEach((layer) => {
+    (String(layer.text).match(/\{(\w+)\}/g) || []).forEach((match) =>
+      keys.add(match.slice(1, -1))
+    );
+  });
+  return [...keys];
+}
+
+function renderItemThumbValues(item) {
+  const wrap = item.dom.thumbTemplateValues;
+  if (!wrap) return;
+  wrap.innerHTML = "";
+  const tpl = thumbnailTemplates.find(
+    (t) => t.id === item.dom.thumbTemplate.value
+  );
+  if (!tpl) {
+    wrap.classList.add("hidden");
+    return;
+  }
+  const keys = thumbnailPlaceholders(tpl);
+  if (!keys.length) {
+    wrap.classList.add("hidden");
+    return;
+  }
+  wrap.classList.remove("hidden");
+  keys.forEach((key) => {
+    if (item.thumbnailValues[key] === undefined) {
+      item.thumbnailValues[key] =
+        key === "episode"
+          ? "1"
+          : key === "title"
+          ? serializeField(item.dom.title).slice(0, 100)
+          : key;
+    }
+    const input = document.createElement("input");
+    input.type = "text";
+    input.value = item.thumbnailValues[key];
+    input.placeholder = key;
+    input.addEventListener("input", () => {
+      item.thumbnailValues[key] = input.value;
+    });
+    wrap.appendChild(thumbField("{" + key + "}", input));
+  });
+}
+
+function refreshThumbTemplateSelects() {
+  items.forEach((item) => {
+    if (!item.dom.thumbTemplate) return;
+    fillThumbTemplateSelect(item.dom.thumbTemplate);
+    renderItemThumbValues(item);
+  });
+}
+
 /* ---------- Command-aware field ---------- */
 
 function createCommandField({ input, menu, preview, onChange }) {
@@ -714,6 +787,7 @@ function addItem(filePath) {
     percent: 0,
     cancelled: false,
     thumbnailPath: null,
+    thumbnailValues: {},
     dom: {},
   };
 
@@ -811,6 +885,18 @@ function addItem(filePath) {
   thumbField.append(thumbLabel, thumbRow);
   options.appendChild(thumbField);
 
+  const tplField = document.createElement("div");
+  tplField.className = "opt";
+  const tplLabel = document.createElement("label");
+  tplLabel.textContent = "Thumbnail template";
+  const tplSelect = document.createElement("select");
+  tplSelect.className = "opt-select";
+  fillThumbTemplateSelect(tplSelect);
+  const tplValues = document.createElement("div");
+  tplValues.className = "thumb-values card-thumb-values hidden";
+  tplField.append(tplLabel, tplSelect, tplValues);
+  options.appendChild(tplField);
+
   const actions = document.createElement("div");
   actions.className = "card-actions";
   const upload = document.createElement("button");
@@ -848,6 +934,8 @@ function addItem(filePath) {
     publish: publishInput,
     thumbnailName: thumbName,
     thumbnailClear: thumbClear,
+    thumbTemplate: tplSelect,
+    thumbTemplateValues: tplValues,
     upload,
     cancel,
     remove,
@@ -883,6 +971,11 @@ function addItem(filePath) {
     if (path) applyThumbnail(item, path);
   });
   thumbClear.addEventListener("click", () => applyThumbnail(item, null));
+
+  tplSelect.addEventListener("change", () => {
+    item.thumbnailValues = {};
+    renderItemThumbValues(item);
+  });
 
   ["dragenter", "dragover"].forEach((type) =>
     thumbField.addEventListener(type, (event) => {
@@ -1031,6 +1124,26 @@ async function startUpload(item) {
     return;
   }
 
+  let thumbnailPath = item.thumbnailPath || null;
+  const templateId = item.dom.thumbTemplate
+    ? item.dom.thumbTemplate.value
+    : "";
+  if (templateId) {
+    const template = thumbnailTemplates.find((t) => t.id === templateId);
+    if (template) {
+      try {
+        const generated = await window.api.generateThumbnail({
+          template,
+          values: item.thumbnailValues,
+        });
+        thumbnailPath = generated.path;
+      } catch (err) {
+        setMessage("Thumbnail generation failed: " + err.message, "error");
+        return;
+      }
+    }
+  }
+
   item.status = "uploading";
   item.cancelled = false;
   item.percent = 0;
@@ -1047,7 +1160,7 @@ async function startUpload(item) {
       description: serializeField(item.dom.desc).slice(0, 5000),
       playlistId: item.dom.playlist.value || null,
       publishAt: toIsoOrNull(item.dom.publish.value),
-      thumbnailPath: item.thumbnailPath || null,
+      thumbnailPath,
     });
     item.status = "done";
     item.percent = 100;
@@ -1460,6 +1573,7 @@ async function saveThumbTemplate() {
       thumbnailTemplates
     );
     renderThumbTemplateList();
+    refreshThumbTemplateSelects();
     resetEditor();
     setMessage("Thumbnail template saved.", "ok");
   } catch (err) {
@@ -1507,6 +1621,7 @@ function renderThumbTemplateList() {
         thumbnailTemplates
       );
       renderThumbTemplateList();
+      refreshThumbTemplateSelects();
     });
     buttons.append(edit, del);
 
@@ -1530,6 +1645,7 @@ async function loadThumbnailTemplates() {
     thumbnailTemplates = [];
   }
   renderThumbTemplateList();
+  refreshThumbTemplateSelects();
 }
 
 els.thumbBgBtn.addEventListener("click", async () => {
