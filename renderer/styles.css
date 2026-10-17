@@ -860,6 +860,36 @@ label {
   min-width: 90px;
 }
 
+.thumb-override {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.thumb-override input[type="color"] {
+  width: 34px;
+  height: 26px;
+  padding: 1px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+}
+
+.thumb-override input[type="color"]:disabled {
+  opacity: 0.4;
+}
+
+.card-thumb-preview {
+  width: 100%;
+  max-width: 320px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin-top: 6px;
+  display: block;
+}
+
 .thumb-preview {
   position: sticky;
   top: 0;

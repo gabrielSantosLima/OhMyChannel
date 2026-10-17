@@ -324,6 +324,7 @@ function renderItemThumbValues(item) {
     input.placeholder = key;
     input.addEventListener("input", () => {
       item.thumbnailValues[key] = input.value;
+      scheduleItemThumbPreview(item);
     });
     wrap.appendChild(thumbField("{" + key + "}", input));
   });
@@ -334,7 +335,66 @@ function refreshThumbTemplateSelects() {
     if (!item.dom.thumbTemplate) return;
     fillThumbTemplateSelect(item.dom.thumbTemplate);
     renderItemThumbValues(item);
+    scheduleItemThumbPreview(item);
   });
+}
+
+function createOverrideControl(label, defaultColor) {
+  const wrap = document.createElement("label");
+  wrap.className = "thumb-override";
+  const check = document.createElement("input");
+  check.type = "checkbox";
+  const text = document.createElement("span");
+  text.textContent = label;
+  const color = document.createElement("input");
+  color.type = "color";
+  color.value = defaultColor;
+  color.disabled = true;
+  check.addEventListener("change", () => {
+    color.disabled = !check.checked;
+  });
+  wrap.append(check, text, color);
+  return { wrap, check, color };
+}
+
+function itemOverrides(item) {
+  const overrides = {};
+  if (item.dom.thumbColorCheck && item.dom.thumbColorCheck.checked) {
+    overrides.color = item.dom.thumbColorInput.value;
+  }
+  if (item.dom.thumbShadowCheck && item.dom.thumbShadowCheck.checked) {
+    overrides.shadowColor = item.dom.thumbShadowInput.value;
+  }
+  return overrides;
+}
+
+function scheduleItemThumbPreview(item) {
+  clearTimeout(item.thumbPreviewTimer);
+  item.thumbPreviewTimer = setTimeout(() => updateItemThumbPreview(item), 300);
+}
+
+async function updateItemThumbPreview(item) {
+  const img = item.dom.thumbPreview;
+  if (!img) return;
+  const tpl = thumbnailTemplates.find(
+    (t) => t.id === item.dom.thumbTemplate.value
+  );
+  if (!tpl) {
+    img.classList.add("hidden");
+    return;
+  }
+  try {
+    const dataUrl = await window.api.generateThumbnail({
+      template: tpl,
+      values: item.thumbnailValues,
+      overrides: itemOverrides(item),
+      asDataUrl: true,
+    });
+    img.src = dataUrl;
+    img.classList.remove("hidden");
+  } catch {
+    img.classList.add("hidden");
+  }
 }
 
 /* ---------- Command-aware field ---------- */
@@ -788,6 +848,7 @@ function addItem(filePath) {
     cancelled: false,
     thumbnailPath: null,
     thumbnailValues: {},
+    thumbPreviewTimer: null,
     dom: {},
   };
 
@@ -892,9 +953,21 @@ function addItem(filePath) {
   const tplSelect = document.createElement("select");
   tplSelect.className = "opt-select";
   fillThumbTemplateSelect(tplSelect);
+  const colorOverride = createOverrideControl("Color", "#efe6d5");
+  const shadowOverride = createOverrideControl("Shadow", "#000000");
   const tplValues = document.createElement("div");
   tplValues.className = "thumb-values card-thumb-values hidden";
-  tplField.append(tplLabel, tplSelect, tplValues);
+  const tplPreview = document.createElement("img");
+  tplPreview.className = "card-thumb-preview hidden";
+  tplPreview.alt = "Thumbnail preview";
+  tplField.append(
+    tplLabel,
+    tplSelect,
+    colorOverride.wrap,
+    shadowOverride.wrap,
+    tplValues,
+    tplPreview
+  );
   options.appendChild(tplField);
 
   const actions = document.createElement("div");
@@ -936,6 +1009,11 @@ function addItem(filePath) {
     thumbnailClear: thumbClear,
     thumbTemplate: tplSelect,
     thumbTemplateValues: tplValues,
+    thumbColorCheck: colorOverride.check,
+    thumbColorInput: colorOverride.color,
+    thumbShadowCheck: shadowOverride.check,
+    thumbShadowInput: shadowOverride.color,
+    thumbPreview: tplPreview,
     upload,
     cancel,
     remove,
@@ -975,6 +1053,17 @@ function addItem(filePath) {
   tplSelect.addEventListener("change", () => {
     item.thumbnailValues = {};
     renderItemThumbValues(item);
+    scheduleItemThumbPreview(item);
+  });
+
+  [
+    colorOverride.check,
+    colorOverride.color,
+    shadowOverride.check,
+    shadowOverride.color,
+  ].forEach((control) => {
+    control.addEventListener("input", () => scheduleItemThumbPreview(item));
+    control.addEventListener("change", () => scheduleItemThumbPreview(item));
   });
 
   ["dragenter", "dragover"].forEach((type) =>
@@ -1135,6 +1224,7 @@ async function startUpload(item) {
         const generated = await window.api.generateThumbnail({
           template,
           values: item.thumbnailValues,
+          overrides: itemOverrides(item),
         });
         thumbnailPath = generated.path;
       } catch (err) {
@@ -1329,25 +1419,28 @@ function bindLayer(control, key, layer, { numeric = false, event = "input" } = {
 }
 
 function defaultLayer() {
-  const family = thumbnailFonts.length ? thumbnailFonts[0].name : "Lato";
-  const entry = thumbnailFonts.find((font) => font.name === family);
+  const names = thumbnailFonts.map((font) => font.name);
+  const preferred = names.includes("BBH Hegarty")
+    ? "BBH Hegarty"
+    : names[0] || "BBH Hegarty";
+  const entry = thumbnailFonts.find((font) => font.name === preferred);
   const hasBold = entry ? entry.weights.includes(700) : false;
   return {
     text: "{episode}",
-    fontFamily: family,
+    fontFamily: preferred,
     fontWeight: hasBold ? 700 : 400,
-    fontSize: 120,
-    color: "#ffffff",
-    x: 0,
-    y: 820,
-    width: THUMB_WIDTH,
-    align: "center",
+    fontSize: 238,
+    color: "#efe6d5",
+    x: 60,
+    y: 760,
+    width: 1800,
+    align: "left",
     strokeColor: "#000000",
     strokeWidth: 0,
     shadowColor: "#000000",
-    shadowBlur: 0,
+    shadowBlur: 12,
     shadowX: 0,
-    shadowY: 0,
+    shadowY: 8,
   };
 }
 

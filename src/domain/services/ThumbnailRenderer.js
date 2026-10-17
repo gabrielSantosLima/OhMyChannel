@@ -14,9 +14,15 @@ const MIME_TYPES = {
   ".svg": "image/svg+xml",
 };
 
+function prettifyFontName(name) {
+  return name
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2");
+}
+
 function parseFont(file) {
   const base = file.replace(/\.[^.]+$/, "");
-  const name = base.split(/[-_ ]+/)[0];
+  const name = prettifyFontName(base.split(/[-_ ]+/)[0]);
   const lower = base.toLowerCase();
   let weight = 400;
   if (/black|heavy/.test(lower)) weight = 900;
@@ -74,7 +80,22 @@ class ThumbnailRenderer {
     return `data:${mime};base64,${data}`;
   }
 
-  buildElement(template, values) {
+  resolveLayer(layer, overrides = {}) {
+    const resolved = { ...layer };
+    if (overrides.color) resolved.color = overrides.color;
+    if (overrides.shadowColor) {
+      resolved.shadowColor = overrides.shadowColor;
+      if (!resolved.shadowBlur && !resolved.shadowX && !resolved.shadowY) {
+        resolved.shadowBlur = 12;
+        resolved.shadowY = 8;
+      }
+    }
+    if (overrides.strokeColor) resolved.strokeColor = overrides.strokeColor;
+    if (overrides.strokeWidth) resolved.strokeWidth = overrides.strokeWidth;
+    return resolved;
+  }
+
+  buildElement(template, values, overrides) {
     const children = [];
     const background = this.loadBackground(template.backgroundPath);
 
@@ -97,7 +118,8 @@ class ThumbnailRenderer {
       });
     }
 
-    for (const layer of template.layers) {
+    for (const rawLayer of template.layers) {
+      const layer = this.resolveLayer(rawLayer, overrides);
       const text = this.applyValues(layer.text, values);
       if (!text) continue;
       const style = {
@@ -151,16 +173,16 @@ class ThumbnailRenderer {
     };
   }
 
-  async toSvg(template, values) {
-    return satori(this.buildElement(template, values), {
+  async toSvg(template, values, overrides) {
+    return satori(this.buildElement(template, values, overrides), {
       width: template.width,
       height: template.height,
       fonts: this.fonts(),
     });
   }
 
-  async render({ template, values }) {
-    const svg = await this.toSvg(template, values);
+  async render({ template, values, overrides }) {
+    const svg = await this.toSvg(template, values, overrides);
     const resvg = new Resvg(svg);
     return resvg.render().asPng();
   }

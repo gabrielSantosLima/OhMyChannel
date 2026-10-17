@@ -8,11 +8,12 @@ class GenerateThumbnailUseCase {
     this.outputDir = outputDir;
   }
 
-  async execute({ template, values, asDataUrl }) {
+  async execute({ template, values, overrides, asDataUrl }) {
     const entity = ThumbnailTemplate.create(template || {});
     const buffer = await this.thumbnailRenderer.render({
       template: entity,
       values,
+      overrides,
     });
 
     if (asDataUrl) {
