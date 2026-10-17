@@ -8,6 +8,7 @@ const els = {
   queueInfo: document.getElementById("queueInfo"),
   queue: document.getElementById("queue"),
   emptyQueue: document.getElementById("emptyQueue"),
+  viewUploads: document.getElementById("view-uploads"),
   message: document.getElementById("message"),
   themeSegmented: document.getElementById("themeSegmented"),
   bgToggle: document.getElementById("bgToggle"),
@@ -782,6 +783,77 @@ async function addFiles() {
     ""
   );
 }
+
+const VIDEO_EXTENSIONS = ["mp4", "mkv", "mov", "avi", "webm"];
+
+function isVideoFile(path) {
+  const ext = path.split(".").pop().toLowerCase();
+  return VIDEO_EXTENSIONS.includes(ext);
+}
+
+function handleDrop(event) {
+  event.preventDefault();
+  const files = Array.from(event.dataTransfer.files || []);
+  const paths = files
+    .map((file) => {
+      try {
+        return window.api.getPathForFile(file);
+      } catch {
+        return file.path || "";
+      }
+    })
+    .filter(Boolean)
+    .filter(isVideoFile);
+
+  if (!paths.length) {
+    setMessage("No supported video files were dropped.", "error");
+    return;
+  }
+
+  paths.forEach(addItem);
+  setMessage(
+    paths.length === 1 ? "1 video added." : `${paths.length} videos added.`,
+    ""
+  );
+}
+
+function hasFileDrag(event) {
+  const types = event.dataTransfer && event.dataTransfer.types;
+  return types ? Array.prototype.includes.call(types, "Files") : false;
+}
+
+els.viewUploads.addEventListener("dragenter", (event) => {
+  if (!hasFileDrag(event)) return;
+  event.preventDefault();
+  els.viewUploads.classList.add("drag-over");
+});
+
+els.viewUploads.addEventListener("dragover", (event) => {
+  if (!hasFileDrag(event)) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = "copy";
+  els.viewUploads.classList.add("drag-over");
+});
+
+els.viewUploads.addEventListener("dragleave", (event) => {
+  if (event.relatedTarget && els.viewUploads.contains(event.relatedTarget)) {
+    return;
+  }
+  els.viewUploads.classList.remove("drag-over");
+});
+
+els.viewUploads.addEventListener("drop", (event) => {
+  if (!hasFileDrag(event)) return;
+  els.viewUploads.classList.remove("drag-over");
+  handleDrop(event);
+});
+
+window.addEventListener("dragover", (event) => {
+  if (hasFileDrag(event)) event.preventDefault();
+});
+window.addEventListener("drop", (event) => {
+  if (hasFileDrag(event)) event.preventDefault();
+});
 
 function removeItem(item) {
   if (item.status === "uploading") return;

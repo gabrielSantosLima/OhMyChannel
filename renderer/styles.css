@@ -406,6 +406,12 @@ label {
   border-radius: 10px;
 }
 
+#view-uploads.drag-over .empty-queue {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 .queue {
   display: flex;
   flex-direction: column;

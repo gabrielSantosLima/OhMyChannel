@@ -1,10 +1,11 @@
-const { contextBridge, ipcRenderer } = require("electron");
+const { contextBridge, ipcRenderer, webUtils } = require("electron");
 
 contextBridge.exposeInMainWorld("api", {
   authStatus: () => ipcRenderer.invoke("auth:status"),
   login: () => ipcRenderer.invoke("auth:login"),
   logout: () => ipcRenderer.invoke("auth:logout"),
   pickVideo: () => ipcRenderer.invoke("dialog:pickVideo"),
+  getPathForFile: (file) => webUtils.getPathForFile(file),
   upload: (payload) => ipcRenderer.invoke("upload:start", payload),
   cancelUpload: (id) => ipcRenderer.invoke("upload:cancel", id),
   listTemplates: () => ipcRenderer.invoke("templates:list"),
