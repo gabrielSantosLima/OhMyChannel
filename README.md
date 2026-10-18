@@ -4,7 +4,7 @@
 
 # OhMyChannel
 
-The desktop app that pre-uploads videos to YouTube.
+The desktop app to prepare and schedule your YouTube uploads.
 
 [![Release](https://img.shields.io/github/v/release/gabrielSantosLima/OhMyChannel?label=release)](https://github.com/gabrielSantosLima/OhMyChannel/releases)
 [![Build](https://github.com/gabrielSantosLima/OhMyChannel/actions/workflows/build.yml/badge.svg)](https://github.com/gabrielSantosLima/OhMyChannel/actions/workflows/build.yml)
@@ -18,44 +18,19 @@ The desktop app that pre-uploads videos to YouTube.
 
 </div>
 
-OhMyChannel is an Electron desktop app that pre-uploads videos to YouTube. You
-only provide the title and description — the upload runs in the background with
-live progress in the system tray, and when it finishes a notification lets you
-jump straight to YouTube Studio to complete the remaining details.
+OhMyChannel lets you prepare your YouTube uploads from your desktop — fill in
+the details, add an intro, pick a thumbnail and a playlist, and schedule when it
+goes live. The uploads run in the background while you keep working.
 
 ## Features
 
-- Sign in with Google (OAuth) and upload videos to YouTube.
-- Queue multiple videos — drop files onto the window or use "Add videos" — and
-  upload them simultaneously with per-video progress and cancellation.
-- Fill in only the title and description; finish the rest in YouTube Studio.
-- Keep uploading in the background with overall progress shown in the system
-  tray; click the completion notification to open YouTube Studio.
-- Reusable title/description templates via the `/template` command with
-  autocomplete. When a template is inserted, each parameter becomes an inline
-  editable chip, so values can contain spaces.
-- Add an uploaded video to one of your playlists (the list is loaded from your
-  YouTube account).
-- Schedule the publish date (the video stays private until the chosen time).
-- Set a custom thumbnail by picking an image, dragging one onto the card, or
-  generating it from a thumbnail template.
-- Visual thumbnail editor: background image, text and image elements, drag to
-  position, right-click context menu to add/duplicate/reorder/delete elements,
-  dynamic or static parameters, and PNG export.
-- Intros: upload intro videos, configure separate video and audio transitions
-  (none/fade/crossfade), adjust the intro volume, and preview the result with a
-  placeholder for the main video.
-- Render the intro together with the video before uploading, at a configurable
-  resolution (defaults to 2K) and the main video's frame rate. Rendering runs in
-  its own queue with a configurable number of parallel renders and "Queued"
-  status. Optionally submit automatically after rendering, or confirm manually.
-- Setup screen that guides you through creating your own Google Cloud OAuth
-  credentials and importing them; no credentials are bundled with the app.
-- Auto-update: the app checks for new releases, downloads them in the background
-  and shows an "Update" icon in the top bar to restart and install.
-- Sidebar navigation with a Settings screen (theme, run-in-background toggle,
-  parallel uploads/renders, render resolution, and update preferences) and an
-  About screen showing the version.
+- Queue several videos and upload them **all at once** with **live progress**.
+- Reuse **title and description templates** to fill everything in seconds.
+- Add videos to **playlists** and **schedule the publish date**.
+- Set **custom thumbnails** — pick an image or compose one from a template.
+- Add **intros** and have them rendered into your videos before uploading.
+- Keep uploading **in the background** with tray progress and notifications.
+- Get **automatic updates** when a new version is available.
 
 ## Getting started
 

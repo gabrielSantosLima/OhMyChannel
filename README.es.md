@@ -4,7 +4,7 @@
 
 # OhMyChannel
 
-La app de escritorio que sube videos a YouTube con antelación.
+La app de escritorio para preparar y programar tus subidas a YouTube.
 
 [![Release](https://img.shields.io/github/v/release/gabrielSantosLima/OhMyChannel?label=release)](https://github.com/gabrielSantosLima/OhMyChannel/releases)
 [![Build](https://github.com/gabrielSantosLima/OhMyChannel/actions/workflows/build.yml/badge.svg)](https://github.com/gabrielSantosLima/OhMyChannel/actions/workflows/build.yml)
@@ -18,47 +18,21 @@ La app de escritorio que sube videos a YouTube con antelación.
 
 </div>
 
-OhMyChannel es una app de escritorio en Electron que sube videos a YouTube con
-antelación. Solo completas el título y la descripción — la subida se ejecuta en
-segundo plano con progreso en vivo en la bandeja del sistema y, al terminar, una
-notificación te lleva directo a YouTube Studio para completar el resto.
+OhMyChannel te permite preparar tus subidas a YouTube desde tu computadora —
+completa los detalles, añade una intro, elige una miniatura y una lista de
+reproducción, y programa cuándo se publica. Las subidas corren en segundo plano
+mientras sigues trabajando.
 
 ## Características
 
-- Inicia sesión con Google (OAuth) y sube videos a YouTube.
-- Cola de varios videos — arrastra archivos a la ventana o usa "Add videos" — y
-  súbelos a la vez, con progreso y cancelación por video.
-- Completa solo el título y la descripción; el resto en YouTube Studio.
-- Sigue subiendo en segundo plano con el progreso general en la bandeja; haz clic
-  en la notificación de finalización para abrir YouTube Studio.
-- Plantillas reutilizables de título/descripción con el comando `/template` y
-  autocompletado. Al insertar una plantilla, cada parámetro se convierte en un
-  chip editable en línea, permitiendo valores con espacios.
-- Añade el video subido a una de tus listas de reproducción (la lista se obtiene
-  de tu cuenta).
-- Programa la fecha de publicación (el video permanece privado hasta la hora
-  elegida).
-- Define una miniatura personalizada eligiendo una imagen, arrastrándola al
-  cuadro o generándola desde una plantilla de miniatura.
-- Editor visual de miniaturas: imagen de fondo, elementos de texto e imagen,
-  arrastrar para posicionar, menú contextual (clic derecho) para
-  añadir/duplicar/reordenar/eliminar, parámetros dinámicos o estáticos y
-  exportación a PNG.
-- Intros: sube videos de intro, configura transiciones de video y audio por
-  separado (none/fade/crossfade), ajusta el volumen de la intro y previsualiza el
-  resultado con un marcador en lugar del video principal.
-- Renderiza la intro junto con el video antes de subirlo, a una resolución
-  configurable (por defecto 2K) y con la tasa de fotogramas del video principal.
-  El render tiene su propia cola, con un número configurable de renders en
-  paralelo y estado "Queued". Opcionalmente envía automáticamente tras renderizar
-  o confirma manualmente.
-- Pantalla de Setup que te guía para crear tus propias credenciales OAuth de
-  Google Cloud e importarlas; no se incluye ninguna credencial en la app.
-- Auto-actualización: la app busca nuevas versiones, las descarga en segundo
-  plano y muestra un icono "Update" arriba para reiniciar e instalar.
-- Navegación lateral con una pantalla de Settings (tema, ejecución en segundo
-  plano, subidas/renders en paralelo, resolución de render y preferencias de
-  actualización) y una pantalla About con la versión.
+- Pon varios videos en cola y súbelos **todos a la vez** con **progreso en vivo**.
+- Reutiliza **plantillas de título y descripción** para completar todo en segundos.
+- Añade videos a **listas de reproducción** y **programa la fecha de publicación**.
+- Define **miniaturas personalizadas** — elige una imagen o compón una a partir de
+  una plantilla.
+- Añade **intros** y haz que se rendericen en tus videos antes de subirlos.
+- Sigue subiendo **en segundo plano**, con progreso en la bandeja y notificaciones.
+- Recibe **actualizaciones automáticas** cuando haya una nueva versión.
 
 ## Primeros pasos
 

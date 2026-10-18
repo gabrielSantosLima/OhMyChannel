@@ -4,7 +4,7 @@
 
 # OhMyChannel
 
-O app desktop que faz pré-upload de vídeos para o YouTube.
+O app desktop para preparar e agendar seus uploads do YouTube.
 
 [![Release](https://img.shields.io/github/v/release/gabrielSantosLima/OhMyChannel?label=release)](https://github.com/gabrielSantosLima/OhMyChannel/releases)
 [![Build](https://github.com/gabrielSantosLima/OhMyChannel/actions/workflows/build.yml/badge.svg)](https://github.com/gabrielSantosLima/OhMyChannel/actions/workflows/build.yml)
@@ -18,44 +18,21 @@ O app desktop que faz pré-upload de vídeos para o YouTube.
 
 </div>
 
-OhMyChannel é um app desktop em Electron que faz pré-upload de vídeos para o
-YouTube. Você informa apenas o título e a descrição — o upload roda em segundo
-plano com progresso ao vivo na bandeja do sistema e, ao terminar, uma notificação
-leva direto ao YouTube Studio para finalizar os detalhes restantes.
+O OhMyChannel permite preparar seus uploads do YouTube direto do computador —
+preencha os detalhes, adicione uma intro, escolha uma thumbnail e uma playlist, e
+agende quando vai ao ar. Os envios rodam em segundo plano enquanto você continua
+trabalhando.
 
 ## Recursos
 
-- Login com o Google (OAuth) e upload de vídeos para o YouTube.
-- Fila de vários vídeos — arraste arquivos para a janela ou use "Add videos" — e
-  envie em paralelo, com progresso e cancelamento por vídeo.
-- Preencha apenas o título e a descrição; finalize o resto no YouTube Studio.
-- Continue enviando em segundo plano com o progresso geral na bandeja; clique na
-  notificação de conclusão para abrir o YouTube Studio.
-- Templates reutilizáveis de título/descrição pelo comando `/template` com
-  autocomplete. Ao inserir um template, cada parâmetro vira um chip editável
-  inline, permitindo valores com espaços.
-- Adicione o vídeo enviado a uma das suas playlists (a lista vem da sua conta).
-- Agende a data de publicação (o vídeo fica privado até o horário escolhido).
-- Defina uma thumbnail personalizada escolhendo uma imagem, arrastando para o
-  card, ou gerando a partir de um template de thumbnail.
-- Editor visual de thumbnail: imagem de fundo, elementos de texto e imagem,
-  arrastar para posicionar, menu de contexto (botão direito) para
-  adicionar/duplicar/reordenar/excluir, parâmetros dinâmicos ou estáticos e
-  exportação em PNG.
-- Intros: faça upload de vídeos de intro, configure transições de vídeo e áudio
-  separadamente (none/fade/crossfade), ajuste o volume da intro e visualize o
-  resultado com um placeholder no lugar do vídeo principal.
-- Renderize a intro junto com o vídeo antes do upload, na resolução configurável
-  (padrão 2K) e no frame rate do vídeo principal. O render tem fila própria, com
-  número configurável de renders em paralelo e status "Queued". Opcionalmente
-  envie automaticamente após renderizar, ou confirme manualmente.
-- Tela de Setup que guia a criação das suas próprias credenciais OAuth do Google
-  Cloud e a importação delas; nenhuma credencial é empacotada com o app.
-- Auto-update: o app verifica novas releases, baixa em segundo plano e mostra um
-  ícone "Update" no topo para reiniciar e instalar.
-- Navegação lateral com uma tela de Settings (tema, execução em segundo plano,
-  uploads/renders em paralelo, resolução de render e preferências de update) e
-  uma tela About com a versão.
+- Enfileire vários vídeos e envie **todos de uma vez** com **progresso ao vivo**.
+- Reutilize **templates de título e descrição** para preencher tudo em segundos.
+- Adicione vídeos a **playlists** e **agende a data de publicação**.
+- Defina **thumbnails personalizadas** — escolha uma imagem ou componha a partir
+  de um template.
+- Adicione **intros** e faça com que sejam renderizadas no vídeo antes do envio.
+- Continue enviando **em segundo plano**, com progresso na bandeja e notificações.
+- Receba **atualizações automáticas** quando houver uma nova versão.
 
 ## Começando
 
