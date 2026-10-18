@@ -31,6 +31,9 @@ nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
+  artifactName: "${productName}-Setup-${version}.${ext}"
+portable:
+  artifactName: "${productName}-${version}-portable.${ext}"
 linux:
   icon: assets/icon.png
   category: Utility
