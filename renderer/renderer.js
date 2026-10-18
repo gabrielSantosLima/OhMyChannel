@@ -9,6 +9,7 @@ const els = {
   queue: document.getElementById("queue"),
   emptyQueue: document.getElementById("emptyQueue"),
   viewUploads: document.getElementById("view-uploads"),
+  uploadGate: document.getElementById("uploadGate"),
   message: document.getElementById("message"),
   themeSegmented: document.getElementById("themeSegmented"),
   bgToggle: document.getElementById("bgToggle"),
@@ -2600,6 +2601,7 @@ els.introReset.addEventListener("click", () => {
 /* ---------- Credentials / Setup ---------- */
 
 let hasCredentials = false;
+let authenticated = false;
 
 function setCredentialsStatus(configured) {
   hasCredentials = configured;
@@ -2612,6 +2614,46 @@ function setCredentialsStatus(configured) {
   if (els.setupBanner) {
     els.setupBanner.classList.toggle("hidden", configured);
   }
+  updateUploadGate();
+}
+
+function updateUploadGate() {
+  const gate = els.uploadGate;
+  if (!gate) return;
+  const needsSetup = !hasCredentials;
+  const needsAuth = hasCredentials && !authenticated;
+  if (!needsSetup && !needsAuth) {
+    gate.classList.add("hidden");
+    gate.innerHTML = "";
+    return;
+  }
+
+  gate.classList.remove("hidden");
+  gate.innerHTML = "";
+
+  const card = document.createElement("div");
+  card.className = "gate-card";
+  const title = document.createElement("h3");
+  const text = document.createElement("p");
+  text.className = "muted";
+  const button = document.createElement("button");
+  button.className = "primary";
+
+  if (needsSetup) {
+    title.textContent = "Set up your Google credentials";
+    text.textContent =
+      "Add your own Google Cloud credentials to start uploading videos.";
+    button.textContent = "Go to Setup";
+    button.addEventListener("click", () => showView("credentials"));
+  } else {
+    title.textContent = "Sign in to continue";
+    text.textContent = "Connect your Google account to upload videos.";
+    button.textContent = "Sign in with Google";
+    button.addEventListener("click", () => els.loginBtn.click());
+  }
+
+  card.append(title, text, button);
+  gate.appendChild(card);
 }
 
 async function loadConfigInfo() {
@@ -2753,17 +2795,19 @@ document.addEventListener("click", (event) => {
 
 /* ---------- Auth ---------- */
 
-function setAuthUi(authenticated) {
-  els.authStatus.textContent = authenticated ? "Connected" : "Disconnected";
-  els.authStatus.className = "status " + (authenticated ? "on" : "off");
-  els.loginBtn.classList.toggle("hidden", authenticated);
-  els.logoutBtn.classList.toggle("hidden", !authenticated);
+function setAuthUi(isAuthenticated) {
+  authenticated = isAuthenticated;
+  els.authStatus.textContent = isAuthenticated ? "Connected" : "Disconnected";
+  els.authStatus.className = "status " + (isAuthenticated ? "on" : "off");
+  els.loginBtn.classList.toggle("hidden", isAuthenticated);
+  els.logoutBtn.classList.toggle("hidden", !isAuthenticated);
+  updateUploadGate();
 }
 
 async function refreshAuth() {
   try {
-    const authenticated = await window.api.authStatus();
-    setAuthUi(authenticated);
+    const isAuthenticated = await window.api.authStatus();
+    setAuthUi(isAuthenticated);
   } catch {
     setAuthUi(false);
   }

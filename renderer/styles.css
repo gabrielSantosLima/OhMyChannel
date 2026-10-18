@@ -1493,3 +1493,45 @@ button.link {
   flex-direction: column;
   gap: 6px;
 }
+
+/* ---------- Upload gate ---------- */
+
+#view-uploads {
+  position: relative;
+}
+
+.upload-gate {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+  border-radius: 12px;
+}
+
+.gate-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 420px;
+  padding: 26px 24px;
+  text-align: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 14px 40px var(--shadow);
+}
+
+.gate-card h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.gate-card p {
+  margin: 0;
+}
