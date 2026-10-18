@@ -1,0 +1,13 @@
+{
+  "name": "ohmychannel-demo",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Recording harness that drives the real OhMyChannel renderer with mocked data to produce a demo GIF.",
+  "scripts": {
+    "record": "node record.js",
+    "encode": "node encode.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.48.0"
+  }
+}
