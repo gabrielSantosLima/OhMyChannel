@@ -7,7 +7,6 @@
 O app desktop para preparar e agendar seus uploads do YouTube.
 
 [![Release](https://img.shields.io/github/v/release/gabrielSantosLima/OhMyChannel?label=release)](https://github.com/gabrielSantosLima/OhMyChannel/releases)
-[![Build](https://github.com/gabrielSantosLima/OhMyChannel/actions/workflows/build.yml/badge.svg)](https://github.com/gabrielSantosLima/OhMyChannel/actions/workflows/build.yml)
 [![Licença: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 [English](README.md) | [Português (Brasil)](README.pt-BR.md) | [Español](README.es.md)

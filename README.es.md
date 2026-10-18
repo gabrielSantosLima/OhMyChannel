@@ -7,7 +7,6 @@
 La app de escritorio para preparar y programar tus subidas a YouTube.
 
 [![Release](https://img.shields.io/github/v/release/gabrielSantosLima/OhMyChannel?label=release)](https://github.com/gabrielSantosLima/OhMyChannel/releases)
-[![Build](https://github.com/gabrielSantosLima/OhMyChannel/actions/workflows/build.yml/badge.svg)](https://github.com/gabrielSantosLima/OhMyChannel/actions/workflows/build.yml)
 [![Licencia: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 [English](README.md) | [Português (Brasil)](README.pt-BR.md) | [Español](README.es.md)
