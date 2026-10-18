@@ -1,0 +1,109 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump type"
+        required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - prerelease
+          - premajor
+          - preminor
+          - prepatch
+      preid:
+        description: "Pre-release identifier (used by pre* bumps), e.g. alpha"
+        required: false
+        default: alpha
+        type: string
+      version:
+        description: "Explicit version (optional; overrides the bump type)"
+        required: false
+        default: ""
+        type: string
+      summary:
+        description: "Short release summary (optional)"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Resolve previous tag
+        id: prev
+        run: |
+          PREV=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          echo "tag=$PREV" >> "$GITHUB_OUTPUT"
+
+      - name: Bump package.json version
+        id: bump
+        env:
+          BUMP: ${{ inputs.bump }}
+          PREID: ${{ inputs.preid }}
+          VERSION_INPUT: ${{ inputs.version }}
+        run: |
+          if [ -n "$VERSION_INPUT" ]; then
+            npm version "$VERSION_INPUT" --no-git-tag-version
+          elif [ "${BUMP#pre}" != "$BUMP" ]; then
+            npm version "$BUMP" --preid "$PREID" --no-git-tag-version
+          else
+            npm version "$BUMP" --no-git-tag-version
+          fi
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Generate release notes
+        env:
+          SUMMARY: ${{ inputs.summary }}
+        run: |
+          node scripts/release-notes.js \
+            --from "${{ steps.prev.outputs.tag }}" \
+            --to HEAD \
+            --out NOTES.md
+
+      - name: Commit and tag
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          git add package.json package-lock.json
+          git commit -m "chore(release): v$VERSION"
+          git tag "v$VERSION"
+          git push origin "HEAD:${{ github.ref_name }}"
+          git push origin "v$VERSION"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          PRERELEASE=""
+          case "$VERSION" in *-*) PRERELEASE="--prerelease" ;; esac
+          gh release create "v$VERSION" \
+            --title "v$VERSION" \
+            --notes-file NOTES.md \
+            $PRERELEASE
