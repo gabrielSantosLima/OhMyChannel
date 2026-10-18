@@ -1244,5 +1244,31 @@ label {
 }
 
 .intro-volume {
-  width: 90px;
+  width: auto;
+}
+
+.intro-volume input[type="range"] {
+  width: 150px;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.intro-actions button {
+  padding: 10px 16px;
+  font-size: 14px;
+}
+
+#renderResolutionSelect {
+  width: auto;
+  min-width: 200px;
+  text-align: left;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  padding: 10px;
+  outline: none;
 }

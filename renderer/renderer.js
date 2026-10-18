@@ -42,6 +42,7 @@ const els = {
   introFileBtn: document.getElementById("introFileBtn"),
   introFileName: document.getElementById("introFileName"),
   introVolume: document.getElementById("introVolume"),
+  introVolumeValue: document.getElementById("introVolumeValue"),
   introVideoEffect: document.getElementById("introVideoEffect"),
   introVideoFadeIn: document.getElementById("introVideoFadeIn"),
   introVideoFadeOut: document.getElementById("introVideoFadeOut"),
@@ -2315,6 +2316,7 @@ function fillIntroForm(intro) {
     ? introPath.split(/[\\/]/).pop()
     : "No video";
   els.introVolume.value = intro && intro.volume != null ? intro.volume * 100 : 100;
+  els.introVolumeValue.textContent = els.introVolume.value;
 
   const transition =
     (intro && intro.transition) || DEFAULT_INTRO_TRANSITION;
@@ -2553,6 +2555,9 @@ els.introFileBtn.addEventListener("click", async () => {
 
 els.introVideoEffect.addEventListener("change", updateIntroEffectFields);
 els.introAudioEffect.addEventListener("change", updateIntroEffectFields);
+els.introVolume.addEventListener("input", () => {
+  els.introVolumeValue.textContent = els.introVolume.value;
+});
 els.introPreviewBtn.addEventListener("click", previewIntro);
 els.introSave.addEventListener("click", saveIntro);
 els.introReset.addEventListener("click", () => {
