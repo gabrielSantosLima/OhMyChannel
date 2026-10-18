@@ -332,6 +332,28 @@ function fillThumbTemplateSelect(select) {
     : "";
 }
 
+function fillIntroSelect(select) {
+  const current = select.value;
+  select.innerHTML = "";
+  const none = document.createElement("option");
+  none.value = "";
+  none.textContent = "None";
+  select.appendChild(none);
+  intros.forEach((intro) => {
+    const option = document.createElement("option");
+    option.value = intro.id;
+    option.textContent = intro.name;
+    select.appendChild(option);
+  });
+  select.value = intros.some((intro) => intro.id === current) ? current : "";
+}
+
+function refreshIntroSelects() {
+  items.forEach((item) => {
+    if (item.dom.intro) fillIntroSelect(item.dom.intro);
+  });
+}
+
 function thumbnailPlaceholders(tpl) {
   const staticKeys = new Set(
     (tpl.parameters || [])
@@ -845,6 +867,12 @@ function createCommandField({ input, menu, preview, onChange }) {
 
 function statusText(item) {
   switch (item.status) {
+    case "queued":
+      return "Queued";
+    case "rendering":
+      return `Rendering ${item.percent}%`;
+    case "rendered":
+      return "Rendered";
     case "uploading":
       return `Uploading ${item.percent}%`;
     case "done":
@@ -869,18 +897,31 @@ function updateItemCounters(item) {
     description.length > 5000 ? "var(--error)" : "";
 }
 
+function uploadButtonLabel(item) {
+  if (item.renderedPath) return "Upload";
+  if (item.dom.intro && item.dom.intro.value) return "Edit";
+  return "Upload";
+}
+
 function refreshItem(item) {
   item.dom.status.textContent = statusText(item);
   item.dom.status.className = "card-status " + item.status;
 
-  const uploading = item.status === "uploading";
+  const busy =
+    item.status === "uploading" ||
+    item.status === "rendering" ||
+    item.status === "queued";
   const done = item.status === "done";
+  const label = uploadButtonLabel(item);
 
-  item.dom.upload.classList.toggle("hidden", uploading || done);
-  item.dom.cancel.classList.toggle("hidden", !uploading);
-  item.dom.remove.classList.toggle("hidden", uploading);
-  item.dom.progress.classList.toggle("hidden", !uploading && !done);
-  item.dom.upload.disabled = done || !serializeField(item.dom.title).trim();
+  item.dom.upload.classList.toggle("hidden", busy || done);
+  item.dom.cancel.classList.toggle("hidden", !busy);
+  item.dom.remove.classList.toggle("hidden", busy);
+  item.dom.progress.classList.toggle("hidden", !busy && !done);
+  item.dom.upload.textContent = label;
+  item.dom.upload.disabled =
+    done ||
+    (label === "Upload" && !serializeField(item.dom.title).trim());
 }
 
 function refreshQueueInfo() {
@@ -906,6 +947,7 @@ function addItem(filePath) {
     thumbnailPath: null,
     thumbnailValues: {},
     thumbPreviewTimer: null,
+    renderedPath: null,
     dom: {},
   };
 
@@ -1027,6 +1069,20 @@ function addItem(filePath) {
   );
   options.appendChild(tplField);
 
+  const introField = document.createElement("div");
+  introField.className = "opt";
+  const introLabel = document.createElement("label");
+  introLabel.textContent = "Intro";
+  const introSelect = document.createElement("select");
+  introSelect.className = "opt-select";
+  fillIntroSelect(introSelect);
+  introSelect.addEventListener("change", () => {
+    item.renderedPath = null;
+    refreshItem(item);
+  });
+  introField.append(introLabel, introSelect);
+  options.appendChild(introField);
+
   const actions = document.createElement("div");
   actions.className = "card-actions";
   const upload = document.createElement("button");
@@ -1071,6 +1127,7 @@ function addItem(filePath) {
     thumbShadowCheck: shadowOverride.check,
     thumbShadowInput: shadowOverride.color,
     thumbPreview: tplPreview,
+    intro: introSelect,
     upload,
     cancel,
     remove,
@@ -1097,7 +1154,7 @@ function addItem(filePath) {
     onChange,
   });
 
-  upload.addEventListener("click", () => startUpload(item));
+  upload.addEventListener("click", () => handleItemAction(item));
   cancel.addEventListener("click", () => cancelItem(item));
   remove.addEventListener("click", () => removeItem(item));
 
@@ -1261,6 +1318,64 @@ function removeItem(item) {
   refreshQueueInfo();
 }
 
+function handleItemAction(item) {
+  const introSelected = item.dom.intro && item.dom.intro.value;
+  if (introSelected && !item.renderedPath) {
+    startRender(item);
+  } else {
+    startUpload(item);
+  }
+}
+
+async function startRender(item) {
+  if (
+    item.status === "uploading" ||
+    item.status === "rendering" ||
+    item.status === "queued"
+  ) {
+    return;
+  }
+  const intro = intros.find((entry) => entry.id === item.dom.intro.value);
+  if (!intro) return;
+
+  item.status = "queued";
+  item.cancelled = false;
+  item.percent = 0;
+  item.dom.fill.style.width = "0%";
+  item.dom.pct.textContent = "0%";
+  refreshItem(item);
+
+  try {
+    const result = await window.api.renderVideo({
+      id: item.id,
+      introPath: intro.path,
+      transition: intro.transition,
+      videoPath: item.filePath,
+    });
+    item.renderedPath = result.path;
+    item.status = "rendered";
+    refreshItem(item);
+    refreshQueueInfo();
+    if (settings.autoSubmitAfterRender) {
+      await startUpload(item);
+    } else {
+      setMessage(
+        `"${item.fileName}" rendered. Click Upload to submit.`,
+        "ok"
+      );
+    }
+  } catch (err) {
+    if (item.cancelled) {
+      item.status = "canceled";
+    } else {
+      item.status = "error";
+      setMessage("Render error: " + err.message, "error");
+    }
+    refreshItem(item);
+    refreshQueueInfo();
+  }
+}
+
 async function startUpload(item) {
   if (item.status === "uploading" || item.status === "done") return;
 
@@ -1302,7 +1417,7 @@ async function startUpload(item) {
   try {
     const result = await window.api.upload({
       id: item.id,
-      filePath: item.filePath,
+      filePath: item.renderedPath || item.filePath,
       title,
       description: serializeField(item.dom.desc).slice(0, 5000),
       playlistId: item.dom.playlist.value || null,
@@ -1334,6 +1449,14 @@ async function startUpload(item) {
 }
 
 async function cancelItem(item) {
+  if (item.status === "rendering" || item.status === "queued") {
+    item.cancelled = true;
+    await window.api.cancelRender(item.id);
+    item.status = "canceled";
+    refreshItem(item);
+    refreshQueueInfo();
+    return;
+  }
   if (item.status !== "uploading") return;
   item.cancelled = true;
   await window.api.cancelUpload(item.id);
@@ -1346,7 +1469,7 @@ function uploadAll() {
   const pending = items.filter(
     (item) => item.status !== "uploading" && item.status !== "done"
   );
-  pending.forEach(startUpload);
+  pending.forEach(handleItemAction);
   if (pending.length) {
     setMessage(`Starting ${pending.length} upload(s)...`, "");
   }
@@ -2230,6 +2353,7 @@ async function saveIntro() {
   try {
     intros = await window.api.saveIntros(intros);
     renderIntroList();
+    refreshIntroSelects();
     resetIntroEditor();
     hideIntroPreview();
     setMessage("Intro saved.", "ok");
@@ -2278,6 +2402,7 @@ function renderIntroList() {
       intros = intros.filter((entry) => entry.id !== intro.id);
       intros = await window.api.saveIntros(intros);
       renderIntroList();
+      refreshIntroSelects();
       if (editingIntroId === intro.id) resetIntroEditor();
     });
     buttons.append(edit, del);
@@ -2294,6 +2419,7 @@ async function loadIntros() {
     intros = [];
   }
   renderIntroList();
+  refreshIntroSelects();
 }
 
 function clearIntroPreviewTimers() {
@@ -2481,6 +2607,24 @@ window.api.onCancelled(({ id }) => {
   item.dom.progress.classList.add("hidden");
   refreshItem(item);
   refreshQueueInfo();
+});
+
+window.api.onRenderState(({ id, status }) => {
+  const item = itemById.get(id);
+  if (!item || item.cancelled) return;
+  if (status === "queued") item.status = "queued";
+  else if (status === "rendering") item.status = "rendering";
+  refreshItem(item);
+});
+
+window.api.onRenderProgress(({ id, percent }) => {
+  const item = itemById.get(id);
+  if (!item || item.cancelled) return;
+  item.status = "rendering";
+  item.percent = percent;
+  item.dom.fill.style.width = percent + "%";
+  item.dom.pct.textContent = percent + "%";
+  refreshItem(item);
 });
 
 /* ---------- Init ---------- */

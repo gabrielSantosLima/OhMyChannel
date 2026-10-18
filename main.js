@@ -339,6 +339,7 @@ function cancelAllUploads() {
 function quitApp() {
   isQuitting = true;
   uploadController.cancelAll();
+  if (renderController) renderController.cancelAll();
   if (tray) {
     tray.destroy();
     tray = null;
@@ -463,6 +464,13 @@ async function runRender(job) {
         event.sender.send("render:progress", { id, rendered, total, percent });
       }
     });
+    if (
+      !isQuitting &&
+      currentSettings &&
+      !currentSettings.autoSubmitAfterRender
+    ) {
+      notify("Render complete", "Click Upload to submit the video.");
+    }
     resolve(data);
   } catch (err) {
     reject(err);
