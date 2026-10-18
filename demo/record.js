@@ -6,8 +6,7 @@
  *
  * Output: demo/out/demo.webm plus demo.gif / demo.webp / demo.mp4
  *
- * The recording uses a smooth zoom that pans/zooms toward the element being
- * acted on (a common demo effect).
+ * The recording uses a smooth zoom that centers the element being acted on.
  */
 const path = require("path");
 const fs = require("fs");
@@ -76,14 +75,17 @@ function encode(webmPath) {
   await page.addInitScript({ path: path.join(__dirname, "mock-api.js") });
 
   const wait = (ms) => page.waitForTimeout(ms);
-  const slowType = (text, delay = 70) =>
-    page.keyboard.type(text, { delay });
+  const slowType = (text, delay = 70) => page.keyboard.type(text, { delay });
   const nav = async (view) => {
     await page.click(`.nav-item[data-view="${view}"]`);
     await wait(700);
   };
 
-  // Smoothly zoom into an element (centered) or reset to the full view.
+  /*
+   * Smoothly zoom the app so the element is centered. Tracks the accumulated
+   * transform so repeated zooms stay correctly centered (measuring the element
+   * while the app is already transformed would otherwise be wrong).
+   */
   const zoom = async (selector, scale = 1.6) => {
     await page.evaluate(
       ({ selector, scale, viewport }) => {
@@ -91,17 +93,21 @@ function encode(webmPath) {
         if (!app) return;
         app.style.transition = "transform 0.8s cubic-bezier(0.33, 1, 0.68, 1)";
         app.style.transformOrigin = "0 0";
+        const current = window.__zoom || { tx: 0, ty: 0, s: 1 };
         const target = selector ? document.querySelector(selector) : null;
         if (!target) {
           app.style.transform = "none";
+          window.__zoom = { tx: 0, ty: 0, s: 1 };
           return;
         }
+        target.scrollIntoView({ block: "center", inline: "nearest" });
         const rect = target.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        const tx = viewport.width / 2 - cx * scale;
-        const ty = viewport.height / 2 - cy * scale;
+        const layoutCx = (rect.left + rect.width / 2 - current.tx) / current.s;
+        const layoutCy = (rect.top + rect.height / 2 - current.ty) / current.s;
+        const tx = viewport.width / 2 - layoutCx * scale;
+        const ty = viewport.height / 2 - layoutCy * scale;
         app.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+        window.__zoom = { tx, ty, s: scale };
       },
       { selector, scale, viewport: VIEWPORT }
     );
@@ -117,12 +123,11 @@ function encode(webmPath) {
 
   // Scene 1 — create an intro with transitions and volume
   await nav("intros");
-  await zoom("#introName", 1.5);
+  await zoom("#introName", 1.6);
   await page.click("#introName");
   await slowType("Gameplay Intro", 80);
   await wait(500);
 
-  await zoom("#introFileBtn", 1.5);
   await page.click("#introFileBtn");
   await wait(700);
 
@@ -139,12 +144,12 @@ function encode(webmPath) {
   await slowType("1", 90);
   await wait(400);
 
-  await zoom(".intro-volume", 1.8);
+  await zoom(".intro-volume", 1.7);
   await page.fill("#introVolume", "80");
   await page.dispatchEvent("#introVolume", "input");
   await wait(900);
 
-  await zoom("#introPreviewBtn", 1.5);
+  await zoom("#introPreviewBtn", 1.6);
   await page.click("#introPreviewBtn");
   await wait(2200);
 
@@ -172,7 +177,7 @@ function encode(webmPath) {
   await page.waitForSelector(".upload-card");
   await wait(900);
 
-  await zoom(".upload-card", 1.45);
+  await zoom(".upload-card .cmd-field", 1.6);
   const titleField = page.locator(".upload-card .cmd-field").first();
   await titleField.click();
   await page.keyboard.press("Control+A");
@@ -188,20 +193,33 @@ function encode(webmPath) {
   await slowType("12", 90);
   await wait(1000);
 
+  await zoom(".upload-card .card-options .opt:nth-child(5)", 1.5);
   const introSelect = page
     .locator('.upload-card .opt:has-text("Intro") select')
     .first();
   await introSelect.selectOption({ label: "Gameplay Intro" });
-  await wait(900);
+  await wait(1000);
 
+  // Render (Edit)
+  await zoom(".upload-card .card-actions button.primary", 1.8);
   const action = page
     .locator(".upload-card .card-actions button.primary")
     .first();
   await action.click();
-  await wait(7000);
+  await wait(1200);
+
+  await zoom(".upload-card", 1.4);
+  await wait(4200); // render: queued -> rendering -> done, then "Rendered"
+
+  // Upload to YouTube (manual confirmation)
+  await zoom(".upload-card .card-actions button.primary", 1.8);
+  await wait(600);
+  await action.click();
+  await zoom(".upload-card", 1.4);
+  await wait(4500); // mocked upload progress
 
   await resetZoom();
-  await wait(1200);
+  await wait(1600);
 
   const video = page.video();
   await context.close();

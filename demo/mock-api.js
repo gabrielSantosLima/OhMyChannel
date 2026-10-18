@@ -18,7 +18,7 @@
     background: true,
     maxParallel: 4,
     sidebarCollapsed: false,
-    autoSubmitAfterRender: true,
+    autoSubmitAfterRender: false,
     renderResolution: "2560x1440",
     maxParallelRenders: 2,
     autoCheckUpdates: true,
@@ -65,9 +65,10 @@
 
     upload: async (payload) => {
       const id = payload.id;
+      await delay(400);
       for (let percent = 0; percent <= 100; percent += 10) {
         if (handlers.progress) handlers.progress({ id, percent });
-        await delay(180);
+        await delay(300);
       }
       return { id: "abc123xyz", warnings: [] };
     },
@@ -76,13 +77,13 @@
     renderVideo: async (payload) => {
       const id = payload.id;
       if (handlers.renderState) handlers.renderState({ id, status: "queued" });
-      await delay(600);
+      await delay(700);
       if (handlers.renderState)
         handlers.renderState({ id, status: "rendering" });
       for (let percent = 0; percent <= 100; percent += 20) {
         if (handlers.renderProgress)
           handlers.renderProgress({ id, percent });
-        await delay(220);
+        await delay(300);
       }
       return { path: "C:/demo/rendered-ep12.mp4" };
     },
