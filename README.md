@@ -1,4 +1,18 @@
+<div align="center">
+
+<img src="assets/icon.png" alt="OhMyChannel" width="160" />
+
 # OhMyChannel
+
+The desktop app that pre-uploads videos to YouTube.
+
+[![Release](https://img.shields.io/github/v/release/gabrielSantosLima/OhMyChannel?label=release)](https://github.com/gabrielSantosLima/OhMyChannel/releases)
+[![Build](https://github.com/gabrielSantosLima/OhMyChannel/actions/workflows/build.yml/badge.svg)](https://github.com/gabrielSantosLima/OhMyChannel/actions/workflows/build.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+[English](README.md) | [Português (Brasil)](README.pt-BR.md) | [Español](README.es.md)
+
+</div>
 
 OhMyChannel is an Electron desktop app that pre-uploads videos to YouTube. You
 only provide the title and description — the upload runs in the background with
