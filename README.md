@@ -12,6 +12,10 @@ The desktop app that pre-uploads videos to YouTube.
 
 [English](README.md) | [Português (Brasil)](README.pt-BR.md) | [Español](README.es.md)
 
+<br />
+
+<img src="docs/demo.gif" alt="OhMyChannel demo" width="820" />
+
 </div>
 
 OhMyChannel is an Electron desktop app that pre-uploads videos to YouTube. You

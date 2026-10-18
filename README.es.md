@@ -12,6 +12,10 @@ La app de escritorio que sube videos a YouTube con antelación.
 
 [English](README.md) | [Português (Brasil)](README.pt-BR.md) | [Español](README.es.md)
 
+<br />
+
+<img src="docs/demo.gif" alt="Demostración de OhMyChannel" width="820" />
+
 </div>
 
 OhMyChannel es una app de escritorio en Electron que sube videos a YouTube con
