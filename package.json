@@ -1,12 +1,15 @@
 {
   "name": "oh-my-channel",
   "version": "0.0.1",
-  "description": "App desktop (Electron) para pre-upload de videos no YouTube",
+  "description": "Electron desktop app to pre-upload videos to YouTube",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:linux": "electron-builder --linux"
   },
-  "author": "",
+  "author": "OhMyChannel <noreply@ohmychannel.app>",
   "license": "MIT",
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",
@@ -16,6 +19,7 @@
     "satori": "^0.62.0"
   },
   "devDependencies": {
-    "electron": "^33.0.0"
+    "electron": "^33.0.0",
+    "electron-builder": "^26.15.3"
   }
 }

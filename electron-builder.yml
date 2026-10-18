@@ -1,0 +1,36 @@
+appId: com.ohmychannel.app
+productName: OhMyChannel
+directories:
+  output: dist
+files:
+  - "**/*"
+  - "!client_secrets.json"
+  - "!token.json"
+  - "!NOTES.md"
+  - "!docs/**"
+  - "!.github/**"
+  - "!scripts/**"
+  - "!tmp-thumbs/**"
+  - "!dist/**"
+  - "!**/*.map"
+  - "!**/*.log"
+asarUnpack:
+  - "**/node_modules/@resvg/resvg-js/**"
+  - "**/node_modules/ffmpeg-static/**"
+  - "**/node_modules/ffprobe-static/**"
+win:
+  icon: assets/icon.ico
+  target:
+    - nsis
+    - portable
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+linux:
+  icon: assets/icon.png
+  category: Utility
+  maintainer: OhMyChannel <noreply@ohmychannel.app>
+  target:
+    - AppImage
+    - deb
