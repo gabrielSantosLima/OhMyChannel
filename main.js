@@ -117,6 +117,8 @@ const ICON_PATH = path.join(__dirname, "assets", "icon.png");
 const ICO_PATH = path.join(__dirname, "assets", "icon.ico");
 
 let mainWindow = null;
+let splashWindow = null;
+let splashShownAt = 0;
 let tray = null;
 let isQuitting = false;
 let currentSettings = null;
@@ -238,12 +240,47 @@ function showWindow() {
   mainWindow.focus();
 }
 
+/* ---------- Splash ---------- */
+
+function createSplash() {
+  splashShownAt = Date.now();
+  splashWindow = new BrowserWindow({
+    width: 360,
+    height: 360,
+    frame: false,
+    resizable: false,
+    transparent: true,
+    show: false,
+    center: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    webPreferences: { contextIsolation: true },
+  });
+  splashWindow.loadFile(path.join(__dirname, "renderer", "splash.html"));
+  splashWindow.once("ready-to-show", () => {
+    if (splashWindow) splashWindow.show();
+  });
+}
+
+function closeSplash() {
+  if (!splashWindow) return;
+  const elapsed = Date.now() - splashShownAt;
+  const delay = Math.max(0, 700 - elapsed);
+  setTimeout(() => {
+    if (splashWindow) {
+      splashWindow.close();
+      splashWindow = null;
+    }
+  }, delay);
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 900,
     height: 800,
     minWidth: 760,
     minHeight: 560,
+    show: false,
     title: "OhMyChannel",
     icon: ICO_PATH,
     webPreferences: {
@@ -253,6 +290,11 @@ function createWindow() {
     },
   });
   mainWindow.setMenuBarVisibility(false);
+
+  mainWindow.once("ready-to-show", () => {
+    closeSplash();
+    mainWindow.show();
+  });
 
   mainWindow.on("close", (event) => {
     if (!isQuitting && currentSettings && currentSettings.background) {
@@ -815,6 +857,7 @@ if (!gotTheLock) {
     app.setAppUserModelId("OhMyChannel");
     buildContainer();
     registerIpc();
+    createSplash();
     createWindow();
     createTray();
     setupUpdater();
