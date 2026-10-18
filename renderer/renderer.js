@@ -22,15 +22,17 @@ const els = {
   tplList: document.getElementById("tplList"),
   thumbName: document.getElementById("thumbName"),
   thumbBgBtn: document.getElementById("thumbBgBtn"),
-  thumbBgName: document.getElementById("thumbBgName"),
-  thumbBgClear: document.getElementById("thumbBgClear"),
-  thumbLayers: document.getElementById("thumbLayers"),
-  thumbAddLayer: document.getElementById("thumbAddLayer"),
-  thumbValues: document.getElementById("thumbValues"),
+  thumbExportBtn: document.getElementById("thumbExportBtn"),
   thumbSave: document.getElementById("thumbSave"),
   thumbReset: document.getElementById("thumbReset"),
   thumbError: document.getElementById("thumbError"),
-  thumbPreviewImg: document.getElementById("thumbPreviewImg"),
+  thumbStageWrap: document.getElementById("thumbStageWrap"),
+  thumbStage: document.getElementById("thumbStage"),
+  thumbStageImg: document.getElementById("thumbStageImg"),
+  thumbStageBoxes: document.getElementById("thumbStageBoxes"),
+  thumbProps: document.getElementById("thumbProps"),
+  thumbParams: document.getElementById("thumbParams"),
+  thumbContext: document.getElementById("thumbContext"),
   thumbList: document.getElementById("thumbList"),
 };
 
@@ -41,10 +43,12 @@ let playlists = [];
 let thumbnailTemplates = [];
 let thumbnailFonts = [];
 let thumbBackground = null;
-let thumbLayers = [];
-let thumbValues = {};
+let thumbElements = [];
+let thumbParameters = [];
+let selectedElementId = null;
 let editingThumbnailId = null;
-let thumbPreviewTimer = null;
+let thumbStageScale = 1;
+let stageRenderTimer = null;
 let settings = { theme: "dark", background: true, maxParallel: 4 };
 let idSeed = 0;
 
@@ -86,6 +90,9 @@ function showView(name) {
   views.forEach((view) =>
     view.classList.toggle("active", view.id === "view-" + name)
   );
+  if (name === "thumbnails") {
+    requestAnimationFrame(() => updateStageScale());
+  }
 }
 
 navButtons.forEach((btn) =>
@@ -283,11 +290,18 @@ function fillThumbTemplateSelect(select) {
 }
 
 function thumbnailPlaceholders(tpl) {
+  const staticKeys = new Set(
+    (tpl.parameters || [])
+      .filter((param) => param.mode === "static")
+      .map((param) => param.key)
+  );
   const keys = new Set();
-  (tpl.layers || []).forEach((layer) => {
-    (String(layer.text).match(/\{(\w+)\}/g) || []).forEach((match) =>
-      keys.add(match.slice(1, -1))
-    );
+  (tpl.elements || []).forEach((element) => {
+    if (element.type !== "text") return;
+    (String(element.text).match(/\{(\w+)\}/g) || []).forEach((match) => {
+      const key = match.slice(1, -1);
+      if (!staticKeys.has(key)) keys.add(key);
+    });
   });
   return [...keys];
 }
@@ -1375,6 +1389,13 @@ els.tplAdd.addEventListener("click", addTemplate);
 const THUMB_WIDTH = 1920;
 const THUMB_HEIGHT = 1080;
 
+let thumbElementSeed = 0;
+
+function newThumbElementId() {
+  thumbElementSeed += 1;
+  return `el-${Date.now().toString(36)}-${thumbElementSeed}`;
+}
+
 function thumbField(label, control) {
   const wrap = document.createElement("div");
   wrap.className = "thumb-field";
@@ -1410,31 +1431,27 @@ function selectInput(options, value) {
   return select;
 }
 
-function bindLayer(control, key, layer, { numeric = false, event = "input" } = {}) {
-  control.addEventListener(event, () => {
-    layer[key] = numeric ? Number(control.value) || 0 : control.value;
-    if (key === "text") renderThumbValueInputs();
-    scheduleThumbPreview();
-  });
-}
-
-function defaultLayer() {
+function defaultTextElement() {
   const names = thumbnailFonts.map((font) => font.name);
-  const preferred = names.includes("BBH Hegarty")
+  const family = names.includes("BBH Hegarty")
     ? "BBH Hegarty"
     : names[0] || "BBH Hegarty";
-  const entry = thumbnailFonts.find((font) => font.name === preferred);
+  const entry = thumbnailFonts.find((font) => font.name === family);
   const hasBold = entry ? entry.weights.includes(700) : false;
   return {
+    id: newThumbElementId(),
+    type: "text",
     text: "{episode}",
-    fontFamily: preferred,
+    fontFamily: family,
     fontWeight: hasBold ? 700 : 400,
     fontSize: 357,
     color: "#efe6d5",
     x: 60,
-    y: 760,
+    y: 700,
     width: 1800,
     align: "left",
+    lineHeight: 1.1,
+    letterSpacing: 0,
     strokeColor: "#000000",
     strokeWidth: 0,
     shadowColor: "#000000",
@@ -1444,35 +1461,222 @@ function defaultLayer() {
   };
 }
 
-function buildLayerRow(layer, index) {
-  const row = document.createElement("div");
-  row.className = "thumb-layer";
-
-  const head = document.createElement("div");
-  head.className = "thumb-layer-head";
-  const title = document.createElement("span");
-  title.textContent = "Text layer " + (index + 1);
-  const remove = document.createElement("button");
-  remove.className = "ghost";
-  remove.textContent = "Remove";
-  remove.addEventListener("click", () => {
-    thumbLayers.splice(index, 1);
-    renderThumbLayerRows();
-    renderThumbValueInputs();
-    scheduleThumbPreview();
+function previewText(text) {
+  return String(text).replace(/\{(\w+)\}/g, (_match, key) => {
+    const param = thumbParameters.find((p) => p.key === key);
+    if (!param) return key;
+    return param.value !== "" ? param.value : key;
   });
-  head.append(title, remove);
-  row.appendChild(head);
+}
 
-  const text = document.createElement("input");
-  text.type = "text";
-  text.value = layer.text;
-  text.placeholder = "Text, e.g. EPISODE {episode}";
-  bindLayer(text, "text", layer);
-  row.appendChild(thumbField("Text", text));
+function thumbPreviewValues() {
+  const values = {};
+  thumbParameters.forEach((param) => {
+    values[param.key] = param.value;
+  });
+  return values;
+}
+
+function elementBox(element) {
+  if (element.type === "image") {
+    return {
+      left: element.x,
+      top: element.y,
+      width: element.width || 200,
+      height: element.height || 200,
+    };
+  }
+  const lines = previewText(element.text).split("\n").length || 1;
+  return {
+    left: element.x,
+    top: element.y,
+    width: element.width || THUMB_WIDTH,
+    height: element.fontSize * element.lineHeight * lines,
+  };
+}
+
+function currentThumbTemplate(nameOverride) {
+  return {
+    id: editingThumbnailId || undefined,
+    name: nameOverride || els.thumbName.value.trim() || "Untitled",
+    width: THUMB_WIDTH,
+    height: THUMB_HEIGHT,
+    backgroundPath: thumbBackground,
+    parameters: thumbParameters.map((param) => ({
+      key: param.key,
+      mode: param.mode,
+      value: param.value,
+    })),
+    elements: thumbElements,
+  };
+}
+
+function updateStageScale() {
+  const width = els.thumbStageWrap.clientWidth || THUMB_WIDTH;
+  thumbStageScale = width / THUMB_WIDTH;
+  els.thumbStage.style.transform = `scale(${thumbStageScale})`;
+}
+
+function renderStageBoxes() {
+  els.thumbStageBoxes.innerHTML = "";
+  thumbElements.forEach((element) => {
+    const box = document.createElement("div");
+    box.className =
+      "thumb-box" + (element.id === selectedElementId ? " selected" : "");
+    const geometry = elementBox(element);
+    box.style.left = geometry.left + "px";
+    box.style.top = geometry.top + "px";
+    box.style.width = geometry.width + "px";
+    box.style.height = geometry.height + "px";
+    box.dataset.id = element.id;
+    box.addEventListener("mousedown", (event) => startDrag(event, element));
+    els.thumbStageBoxes.appendChild(box);
+  });
+}
+
+function startDrag(event, element) {
+  if (event.button !== 0) return;
+  event.preventDefault();
+  selectElement(element.id);
+  const startX = event.clientX;
+  const startY = event.clientY;
+  const originX = element.x;
+  const originY = element.y;
+  const move = (moveEvent) => {
+    element.x = Math.round(
+      originX + (moveEvent.clientX - startX) / thumbStageScale
+    );
+    element.y = Math.round(
+      originY + (moveEvent.clientY - startY) / thumbStageScale
+    );
+    renderStageBoxes();
+  };
+  const up = () => {
+    window.removeEventListener("mousemove", move);
+    window.removeEventListener("mouseup", up);
+    renderProps();
+    scheduleStageRender();
+  };
+  window.addEventListener("mousemove", move);
+  window.addEventListener("mouseup", up);
+}
+
+function selectElement(id) {
+  selectedElementId = id;
+  renderStageBoxes();
+  renderProps();
+}
+
+function scheduleStageRender() {
+  renderStageBoxes();
+  clearTimeout(stageRenderTimer);
+  stageRenderTimer = setTimeout(renderStageImage, 250);
+}
+
+async function renderStageImage() {
+  try {
+    const dataUrl = await window.api.generateThumbnail({
+      template: currentThumbTemplate(),
+      values: thumbPreviewValues(),
+      asDataUrl: true,
+    });
+    els.thumbStageImg.src = dataUrl;
+    els.thumbError.textContent = "";
+  } catch (err) {
+    els.thumbError.textContent = err.message;
+  }
+}
+
+function bindProp(control, element, key, opts = {}) {
+  const { numeric = false, event = "input", after } = opts;
+  control.addEventListener(event, () => {
+    element[key] = numeric ? Number(control.value) || 0 : control.value;
+    renderStageBoxes();
+    if (after) after();
+    scheduleStageRender();
+  });
+}
+
+function renderProps() {
+  const panel = els.thumbProps;
+  panel.innerHTML = "";
+  const element = thumbElements.find((el) => el.id === selectedElementId);
+  if (!element) {
+    const hint = document.createElement("span");
+    hint.className = "muted";
+    hint.textContent = "Select an element";
+    panel.appendChild(hint);
+    return;
+  }
+
+  const title = document.createElement("div");
+  title.className = "thumb-props-title";
+  title.textContent =
+    element.type === "image" ? "Image element" : "Text element";
+  panel.appendChild(title);
 
   const grid = document.createElement("div");
   grid.className = "thumb-grid";
+
+  const x = numberInput(element.x);
+  bindProp(x, element, "x", { numeric: true });
+  grid.appendChild(thumbField("X", x));
+
+  const y = numberInput(element.y);
+  bindProp(y, element, "y", { numeric: true });
+  grid.appendChild(thumbField("Y", y));
+
+  const width = numberInput(element.width);
+  bindProp(width, element, "width", { numeric: true });
+  grid.appendChild(thumbField("Width", width));
+
+  if (element.type === "image") {
+    const height = numberInput(element.height);
+    bindProp(height, element, "height", { numeric: true });
+    grid.appendChild(thumbField("Height", height));
+
+    const opacity = numberInput(element.opacity);
+    bindProp(opacity, element, "opacity", { numeric: true });
+    grid.appendChild(thumbField("Opacity", opacity));
+    panel.appendChild(grid);
+
+    const row = document.createElement("div");
+    row.className = "thumb-row";
+    const choose = document.createElement("button");
+    choose.type = "button";
+    choose.textContent = "Choose image";
+    choose.addEventListener("click", async () => {
+      const path = await window.api.pickThumbnail();
+      if (path) {
+        element.src = path;
+        scheduleStageRender();
+      }
+    });
+    row.appendChild(choose);
+    panel.appendChild(row);
+    return;
+  }
+
+  const lineHeight = numberInput(element.lineHeight);
+  bindProp(lineHeight, element, "lineHeight", { numeric: true });
+  grid.appendChild(thumbField("Line height", lineHeight));
+
+  const spacing = numberInput(element.letterSpacing);
+  bindProp(spacing, element, "letterSpacing", { numeric: true });
+  grid.appendChild(thumbField("Spacing", spacing));
+
+  const weight = selectInput(
+    [100, 200, 300, 400, 500, 600, 700, 800, 900],
+    element.fontWeight
+  );
+  bindProp(weight, element, "fontWeight", { numeric: true, event: "change" });
+  grid.appendChild(thumbField("Weight", weight));
+
+  const align = selectInput(["left", "center", "right"], element.align);
+  bindProp(align, element, "align", { event: "change" });
+  grid.appendChild(thumbField("Align", align));
+
+  panel.appendChild(grid);
 
   const font = document.createElement("select");
   thumbnailFonts.forEach((entry) => {
@@ -1481,167 +1685,263 @@ function buildLayerRow(layer, index) {
     option.textContent = entry.name;
     font.appendChild(option);
   });
-  font.value = layer.fontFamily;
-  bindLayer(font, "fontFamily", layer, { event: "change" });
-  grid.appendChild(thumbField("Font", font));
+  font.value = element.fontFamily;
+  bindProp(font, element, "fontFamily", { event: "change" });
+  panel.appendChild(thumbField("Font", font));
 
-  const weight = selectInput(
-    [100, 200, 300, 400, 500, 600, 700, 800, 900],
-    layer.fontWeight
-  );
-  bindLayer(weight, "fontWeight", layer, { numeric: true, event: "change" });
-  grid.appendChild(thumbField("Weight", weight));
-
-  const size = numberInput(layer.fontSize);
-  bindLayer(size, "fontSize", layer, { numeric: true });
-  grid.appendChild(thumbField("Size", size));
-
-  const color = colorInput(layer.color);
-  bindLayer(color, "color", layer);
-  grid.appendChild(thumbField("Color", color));
-
-  const align = selectInput(["left", "center", "right"], layer.align);
-  bindLayer(align, "align", layer, { event: "change" });
-  grid.appendChild(thumbField("Align", align));
-
-  const x = numberInput(layer.x);
-  bindLayer(x, "x", layer, { numeric: true });
-  grid.appendChild(thumbField("X", x));
-
-  const y = numberInput(layer.y);
-  bindLayer(y, "y", layer, { numeric: true });
-  grid.appendChild(thumbField("Y", y));
-
-  const width = numberInput(layer.width);
-  bindLayer(width, "width", layer, { numeric: true });
-  grid.appendChild(thumbField("Width", width));
-
-  const strokeColor = colorInput(layer.strokeColor);
-  bindLayer(strokeColor, "strokeColor", layer);
-  grid.appendChild(thumbField("Stroke", strokeColor));
-
-  const strokeWidth = numberInput(layer.strokeWidth);
-  bindLayer(strokeWidth, "strokeWidth", layer, { numeric: true });
-  grid.appendChild(thumbField("Stroke px", strokeWidth));
-
-  const shadowColor = colorInput(layer.shadowColor);
-  bindLayer(shadowColor, "shadowColor", layer);
-  grid.appendChild(thumbField("Shadow", shadowColor));
-
-  const shadowBlur = numberInput(layer.shadowBlur);
-  bindLayer(shadowBlur, "shadowBlur", layer, { numeric: true });
-  grid.appendChild(thumbField("Blur", shadowBlur));
-
-  row.appendChild(grid);
-  return row;
-}
-
-function renderThumbLayerRows() {
-  els.thumbLayers.innerHTML = "";
-  thumbLayers.forEach((layer, index) => {
-    els.thumbLayers.appendChild(buildLayerRow(layer, index));
+  const text = document.createElement("textarea");
+  text.rows = 2;
+  text.value = element.text;
+  text.placeholder = "Text with {parameters}";
+  text.addEventListener("input", () => {
+    element.text = text.value;
+    renderParams();
+    renderStageBoxes();
+    scheduleStageRender();
   });
+  panel.appendChild(thumbField("Text", text));
+
+  const insertRow = document.createElement("div");
+  insertRow.className = "thumb-row";
+  const keyInput = document.createElement("input");
+  keyInput.type = "text";
+  keyInput.placeholder = "parameter name";
+  const insert = document.createElement("button");
+  insert.type = "button";
+  insert.textContent = "Insert";
+  insert.addEventListener("click", () => {
+    const key = keyInput.value.replace(/[^a-zA-Z0-9_]/g, "");
+    if (!key) return;
+    element.text += `{${key}}`;
+    text.value = element.text;
+    keyInput.value = "";
+    if (!thumbParameters.some((param) => param.key === key)) {
+      thumbParameters.push({ key, mode: "dynamic", value: "" });
+    }
+    renderParams();
+    renderStageBoxes();
+    scheduleStageRender();
+  });
+  insertRow.append(keyInput, insert);
+  panel.appendChild(insertRow);
+
+  const color = colorInput(element.color);
+  bindProp(color, element, "color");
+  const strokeColor = colorInput(element.strokeColor);
+  bindProp(strokeColor, element, "strokeColor");
+  const strokeWidth = numberInput(element.strokeWidth);
+  bindProp(strokeWidth, element, "strokeWidth", { numeric: true });
+  const shadowColor = colorInput(element.shadowColor);
+  bindProp(shadowColor, element, "shadowColor");
+  const shadowBlur = numberInput(element.shadowBlur);
+  bindProp(shadowBlur, element, "shadowBlur", { numeric: true });
+  const shadowX = numberInput(element.shadowX);
+  bindProp(shadowX, element, "shadowX", { numeric: true });
+  const shadowY = numberInput(element.shadowY);
+  bindProp(shadowY, element, "shadowY", { numeric: true });
+
+  const styleGrid = document.createElement("div");
+  styleGrid.className = "thumb-grid";
+  styleGrid.appendChild(thumbField("Color", color));
+  styleGrid.appendChild(thumbField("Stroke", strokeColor));
+  styleGrid.appendChild(thumbField("Stroke px", strokeWidth));
+  styleGrid.appendChild(thumbField("Shadow", shadowColor));
+  styleGrid.appendChild(thumbField("Blur", shadowBlur));
+  styleGrid.appendChild(thumbField("Shadow X", shadowX));
+  styleGrid.appendChild(thumbField("Shadow Y", shadowY));
+  panel.appendChild(styleGrid);
 }
 
-function collectPlaceholders() {
+function renderParams() {
   const keys = new Set();
-  thumbLayers.forEach((layer) => {
-    const matches = String(layer.text).match(/\{(\w+)\}/g) || [];
-    matches.forEach((match) => keys.add(match.slice(1, -1)));
+  thumbElements.forEach((element) => {
+    if (element.type !== "text") return;
+    (String(element.text).match(/\{(\w+)\}/g) || []).forEach((match) =>
+      keys.add(match.slice(1, -1))
+    );
   });
-  return [...keys];
-}
+  const detected = [...keys];
+  thumbParameters = detected.map(
+    (key) =>
+      thumbParameters.find((param) => param.key === key) || {
+        key,
+        mode: "dynamic",
+        value: "",
+      }
+  );
 
-function renderThumbValueInputs() {
-  const keys = collectPlaceholders();
-  els.thumbValues.innerHTML = "";
-  if (!keys.length) {
-    els.thumbValues.classList.add("hidden");
+  els.thumbParams.innerHTML = "";
+  if (!detected.length) {
+    const hint = document.createElement("span");
+    hint.className = "muted";
+    hint.textContent = "No parameters. Add {name} inside a text element.";
+    els.thumbParams.appendChild(hint);
     return;
   }
-  els.thumbValues.classList.remove("hidden");
-  keys.forEach((key) => {
-    if (thumbValues[key] === undefined) {
-      thumbValues[key] =
-        key === "episode" ? "12" : key === "title" ? "Sample Title" : key;
-    }
-    const input = document.createElement("input");
-    input.type = "text";
-    input.value = thumbValues[key];
-    input.placeholder = key;
-    input.addEventListener("input", () => {
-      thumbValues[key] = input.value;
-      scheduleThumbPreview();
+  detected.forEach((key) => {
+    const param = thumbParameters.find((p) => p.key === key);
+    const row = document.createElement("div");
+    row.className = "thumb-param";
+    const name = document.createElement("span");
+    name.className = "thumb-param-key";
+    name.textContent = "{" + key + "}";
+    const mode = selectInput(["dynamic", "static"], param.mode);
+    mode.addEventListener("change", () => {
+      param.mode = mode.value;
+      renderParams();
+      scheduleStageRender();
     });
-    els.thumbValues.appendChild(thumbField("{" + key + "}", input));
+    const value = document.createElement("input");
+    value.type = "text";
+    value.value = param.value;
+    value.placeholder =
+      param.mode === "static" ? "Fixed value" : "Preview value";
+    value.addEventListener("input", () => {
+      param.value = value.value;
+      scheduleStageRender();
+    });
+    row.append(name, mode, value);
+    els.thumbParams.appendChild(row);
   });
 }
 
-function buildThumbTemplate(name) {
-  return {
-    id: editingThumbnailId,
-    name: name || els.thumbName.value.trim() || "Untitled",
-    width: THUMB_WIDTH,
-    height: THUMB_HEIGHT,
-    backgroundPath: thumbBackground,
-    layers: thumbLayers,
-  };
+function hideContextMenu() {
+  els.thumbContext.classList.add("hidden");
 }
 
-async function updateThumbPreview() {
-  try {
-    const dataUrl = await window.api.generateThumbnail({
-      template: buildThumbTemplate(),
-      values: thumbValues,
-      asDataUrl: true,
+function showContextMenu(x, y, items) {
+  const menu = els.thumbContext;
+  menu.innerHTML = "";
+  items.forEach((item) => {
+    if (item.separator) {
+      const sep = document.createElement("div");
+      sep.className = "context-sep";
+      menu.appendChild(sep);
+      return;
+    }
+    const row = document.createElement("div");
+    row.className = "context-item";
+    row.textContent = item.label;
+    row.addEventListener("mousedown", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      hideContextMenu();
+      item.action();
     });
-    els.thumbPreviewImg.src = dataUrl;
-    els.thumbError.textContent = "";
-  } catch (err) {
-    els.thumbError.textContent = err.message;
-  }
+    menu.appendChild(row);
+  });
+  menu.style.left = x + "px";
+  menu.style.top = y + "px";
+  menu.classList.remove("hidden");
 }
 
-function scheduleThumbPreview() {
-  clearTimeout(thumbPreviewTimer);
-  thumbPreviewTimer = setTimeout(updateThumbPreview, 250);
+function addTextElement() {
+  const element = defaultTextElement();
+  element.text = "New text";
+  thumbElements.push(element);
+  selectElement(element.id);
+  renderParams();
+  scheduleStageRender();
 }
 
-function updateThumbBackgroundUi() {
-  els.thumbBgName.textContent = thumbBackground
-    ? thumbBackground.split(/[\\/]/).pop()
-    : "No background";
-  els.thumbBgClear.classList.toggle("hidden", !thumbBackground);
+async function addImageElement() {
+  const path = await window.api.pickThumbnail();
+  if (!path) return;
+  const element = {
+    id: newThumbElementId(),
+    type: "image",
+    src: path,
+    x: 120,
+    y: 120,
+    width: 400,
+    height: 400,
+    opacity: 1,
+  };
+  thumbElements.push(element);
+  selectElement(element.id);
+  scheduleStageRender();
+}
+
+function elementMenuItems(element) {
+  return [
+    { label: "Edit", action: () => selectElement(element.id) },
+    {
+      label: "Duplicate",
+      action: () => {
+        const copy = JSON.parse(JSON.stringify(element));
+        copy.id = newThumbElementId();
+        copy.x += 30;
+        copy.y += 30;
+        thumbElements.push(copy);
+        selectElement(copy.id);
+        renderParams();
+        scheduleStageRender();
+      },
+    },
+    {
+      label: "Bring to front",
+      action: () => {
+        thumbElements = thumbElements.filter((el) => el.id !== element.id);
+        thumbElements.push(element);
+        scheduleStageRender();
+      },
+    },
+    {
+      label: "Send to back",
+      action: () => {
+        thumbElements = thumbElements.filter((el) => el.id !== element.id);
+        thumbElements.unshift(element);
+        scheduleStageRender();
+      },
+    },
+    { separator: true },
+    {
+      label: "Delete",
+      action: () => {
+        thumbElements = thumbElements.filter((el) => el.id !== element.id);
+        if (selectedElementId === element.id) selectedElementId = null;
+        renderProps();
+        renderParams();
+        scheduleStageRender();
+      },
+    },
+  ];
+}
+
+function canvasMenuItems() {
+  return [
+    { label: "Add text", action: addTextElement },
+    { label: "Add image", action: addImageElement },
+    { separator: true },
+    { label: "Export PNG", action: exportThumb },
+  ];
 }
 
 function resetEditor() {
   editingThumbnailId = null;
   els.thumbName.value = "";
   thumbBackground = null;
-  updateThumbBackgroundUi();
-  thumbValues = {};
-  thumbLayers = [defaultLayer()];
-  renderThumbLayerRows();
-  renderThumbValueInputs();
-  els.thumbError.textContent = "";
-  updateThumbPreview();
+  thumbParameters = [];
+  thumbElements = [defaultTextElement()];
+  selectedElementId = thumbElements[0].id;
+  renderParams();
+  renderProps();
+  updateStageScale();
+  scheduleStageRender();
 }
 
 function editThumbTemplate(tpl) {
   editingThumbnailId = tpl.id;
   els.thumbName.value = tpl.name;
   thumbBackground = tpl.backgroundPath || null;
-  updateThumbBackgroundUi();
-  thumbValues = {};
-  thumbLayers = (tpl.layers || []).map((layer) => ({
-    ...defaultLayer(),
-    ...layer,
-  }));
-  renderThumbLayerRows();
-  renderThumbValueInputs();
-  els.thumbError.textContent = "";
+  thumbParameters = (tpl.parameters || []).map((param) => ({ ...param }));
+  thumbElements = JSON.parse(JSON.stringify(tpl.elements || []));
+  selectedElementId = thumbElements.length ? thumbElements[0].id : null;
+  renderParams();
+  renderProps();
   showView("thumbnails");
-  updateThumbPreview();
+  updateStageScale();
+  scheduleStageRender();
 }
 
 async function saveThumbTemplate() {
@@ -1650,14 +1950,7 @@ async function saveThumbTemplate() {
     els.thumbError.textContent = "Enter the template name.";
     return;
   }
-  const template = {
-    id: editingThumbnailId || undefined,
-    name,
-    width: THUMB_WIDTH,
-    height: THUMB_HEIGHT,
-    backgroundPath: thumbBackground,
-    layers: thumbLayers,
-  };
+  const template = currentThumbTemplate(name);
   const index = thumbnailTemplates.findIndex((t) => t.id === template.id);
   if (index === -1) thumbnailTemplates.push(template);
   else thumbnailTemplates[index] = template;
@@ -1669,6 +1962,17 @@ async function saveThumbTemplate() {
     refreshThumbTemplateSelects();
     resetEditor();
     setMessage("Thumbnail template saved.", "ok");
+  } catch (err) {
+    els.thumbError.textContent = err.message;
+  }
+}
+
+async function exportThumb() {
+  try {
+    await window.api.exportThumbnail({
+      template: currentThumbTemplate(),
+      values: thumbPreviewValues(),
+    });
   } catch (err) {
     els.thumbError.textContent = err.message;
   }
@@ -1694,9 +1998,9 @@ function renderThumbTemplateList() {
     name.textContent = tpl.name;
     const detail = document.createElement("span");
     detail.className = "tpl-detail";
-    detail.textContent =
-      `${tpl.width}x${tpl.height} | ` +
-      (tpl.layers.length ? tpl.layers.length + " layer(s)" : "no layers");
+    const elementCount = (tpl.elements || []).length;
+    const paramCount = (tpl.parameters || []).length;
+    detail.textContent = `${elementCount} element(s) | ${paramCount} parameter(s)`;
     info.append(name, detail);
 
     const buttons = document.createElement("div");
@@ -1745,25 +2049,45 @@ els.thumbBgBtn.addEventListener("click", async () => {
   const path = await window.api.pickThumbnail();
   if (!path) return;
   thumbBackground = path;
-  updateThumbBackgroundUi();
-  scheduleThumbPreview();
+  scheduleStageRender();
 });
 
-els.thumbBgClear.addEventListener("click", () => {
-  thumbBackground = null;
-  updateThumbBackgroundUi();
-  scheduleThumbPreview();
-});
-
-els.thumbAddLayer.addEventListener("click", () => {
-  thumbLayers.push(defaultLayer());
-  renderThumbLayerRows();
-  renderThumbValueInputs();
-  scheduleThumbPreview();
-});
-
+els.thumbExportBtn.addEventListener("click", exportThumb);
 els.thumbSave.addEventListener("click", saveThumbTemplate);
 els.thumbReset.addEventListener("click", resetEditor);
+
+els.thumbStage.addEventListener("mousedown", (event) => {
+  if (
+    event.target === els.thumbStage ||
+    event.target === els.thumbStageImg ||
+    event.target === els.thumbStageBoxes
+  ) {
+    selectElement(null);
+  }
+});
+
+els.thumbStage.addEventListener("contextmenu", (event) => {
+  event.preventDefault();
+  const box = event.target.closest ? event.target.closest(".thumb-box") : null;
+  if (box) {
+    const element = thumbElements.find((el) => el.id === box.dataset.id);
+    if (!element) return;
+    selectElement(element.id);
+    showContextMenu(event.clientX, event.clientY, elementMenuItems(element));
+  } else {
+    showContextMenu(event.clientX, event.clientY, canvasMenuItems());
+  }
+});
+
+window.addEventListener("mousedown", (event) => {
+  if (!els.thumbContext.contains(event.target)) hideContextMenu();
+});
+
+window.addEventListener("resize", () => {
+  if (document.getElementById("view-thumbnails").classList.contains("active")) {
+    updateStageScale();
+  }
+});
 
 /* ---------- Auth ---------- */
 

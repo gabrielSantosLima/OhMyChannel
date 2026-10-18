@@ -109,28 +109,27 @@
 
         <section id="view-thumbnails" class="view">
           <h2>Thumbnails</h2>
-          <div class="thumb-editor">
-            <div class="thumb-form">
-              <div class="thumb-bg-row">
-                <input id="thumbName" type="text" placeholder="Template name (e.g. gameplay)" />
-                <button id="thumbBgBtn">Choose background</button>
-                <span id="thumbBgName" class="thumb-bg-name">No background</span>
-                <button id="thumbBgClear" class="ghost hidden">Remove</button>
-              </div>
-              <div id="thumbLayers" class="thumb-layers"></div>
-              <button id="thumbAddLayer">Add text layer</button>
-              <div id="thumbValues" class="thumb-values hidden"></div>
-              <div class="thumb-save">
-                <button id="thumbSave" class="primary">Save template</button>
-                <button id="thumbReset" class="ghost">Reset</button>
-                <span id="thumbError" class="tpl-error"></span>
-              </div>
-            </div>
-            <div class="thumb-preview">
-              <span class="muted">Preview</span>
-              <img id="thumbPreviewImg" alt="Thumbnail preview" />
-            </div>
+          <div class="thumb-toolbar">
+            <input id="thumbName" type="text" placeholder="Template name" />
+            <button id="thumbBgBtn">Background</button>
+            <button id="thumbExportBtn">Export PNG</button>
+            <button id="thumbSave" class="primary">Save</button>
+            <button id="thumbReset" class="ghost">New</button>
+            <span id="thumbError" class="tpl-error"></span>
           </div>
+          <div class="thumb-workspace">
+            <div id="thumbStageWrap" class="thumb-stage-wrap">
+              <div id="thumbStage" class="thumb-stage">
+                <img id="thumbStageImg" class="thumb-stage-img" alt="Thumbnail preview" />
+                <div id="thumbStageBoxes" class="thumb-stage-boxes"></div>
+              </div>
+            </div>
+            <aside id="thumbProps" class="thumb-props">
+              <span class="muted">Select an element</span>
+            </aside>
+          </div>
+          <div id="thumbParams" class="thumb-params"></div>
+          <div id="thumbContext" class="context-menu hidden"></div>
           <div id="thumbList" class="tpl-list"></div>
         </section>
 

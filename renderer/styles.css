@@ -737,71 +737,97 @@ label {
 
 /* ---------- Thumbnails editor ---------- */
 
-.thumb-editor {
+.thumb-toolbar {
   display: flex;
-  gap: 18px;
-  margin-bottom: 18px;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.thumb-toolbar input[type="text"] {
+  flex: 1;
+  min-width: 180px;
+  max-width: 360px;
+}
+
+.thumb-workspace {
+  display: flex;
+  gap: 16px;
   align-items: flex-start;
   flex-wrap: wrap;
+  margin-bottom: 16px;
 }
 
-.thumb-form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  flex: 1;
-  min-width: 340px;
-  max-width: 640px;
-}
-
-.thumb-bg-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.thumb-bg-row input[type="text"] {
-  flex: 1;
-  min-width: 160px;
-}
-
-.thumb-bg-name {
-  font-size: 12px;
-  color: var(--muted);
-  max-width: 150px;
+.thumb-stage-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 680px;
+  aspect-ratio: 16 / 9;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.thumb-layers {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.thumb-layer {
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 10px;
+  background: #000;
+}
+
+.thumb-stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1920px;
+  height: 1080px;
+  transform-origin: top left;
+}
+
+.thumb-stage-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.thumb-stage-boxes {
+  position: absolute;
+  inset: 0;
+}
+
+.thumb-box {
+  position: absolute;
+  border: 2px dashed rgba(120, 170, 255, 0.55);
+  box-sizing: border-box;
+  cursor: move;
+}
+
+.thumb-box.selected {
+  border-color: var(--accent);
+  border-style: solid;
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.thumb-props {
+  flex: 1;
+  min-width: 260px;
+  max-width: 420px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
   background: var(--bg-soft);
+  max-height: 520px;
+  overflow: auto;
 }
 
-.thumb-layer-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.thumb-props-title {
+  font-weight: 600;
   font-size: 13px;
-  color: var(--muted);
 }
 
-.thumb-layer-head button {
-  padding: 4px 8px;
-  font-size: 12px;
+.thumb-props textarea {
+  resize: vertical;
 }
 
 .thumb-grid {
@@ -824,7 +850,8 @@ label {
 }
 
 .thumb-field input,
-.thumb-field select {
+.thumb-field select,
+.thumb-field textarea {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -837,7 +864,8 @@ label {
 }
 
 .thumb-field input:focus,
-.thumb-field select:focus {
+.thumb-field select:focus,
+.thumb-field textarea:focus {
   border-color: var(--accent);
 }
 
@@ -890,25 +918,74 @@ label {
   display: block;
 }
 
-.thumb-preview {
-  position: sticky;
-  top: 0;
+.thumb-row input[type="text"] {
+  flex: 1;
 }
 
-.thumb-preview img {
-  width: 320px;
-  max-width: 100%;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg-soft);
-  display: block;
-  margin-top: 6px;
-}
-
-.thumb-save {
+.thumb-params {
   display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+  max-width: 640px;
+}
+
+.thumb-param {
+  display: flex;
+  gap: 8px;
   align-items: center;
-  gap: 10px;
+}
+
+.thumb-param-key {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--muted);
+  min-width: 90px;
+}
+
+.thumb-param select,
+.thumb-param input[type="text"] {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  padding: 5px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+}
+
+.thumb-param input[type="text"] {
+  flex: 1;
+}
+
+.context-menu {
+  position: fixed;
+  z-index: 60;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px var(--shadow);
+  padding: 4px;
+  min-width: 160px;
+}
+
+.context-item {
+  padding: 8px 10px;
+  font-size: 13px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.context-item:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.context-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 2px;
 }
 
 /* ---------- Settings ---------- */
