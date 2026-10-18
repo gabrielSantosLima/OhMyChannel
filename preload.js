@@ -5,6 +5,12 @@ contextBridge.exposeInMainWorld("api", {
   getConfigInfo: () => ipcRenderer.invoke("config:info"),
   importCredentials: () => ipcRenderer.invoke("config:importSecrets"),
   openExternal: (url) => ipcRenderer.invoke("app:openExternal", url),
+  getUpdateState: () => ipcRenderer.invoke("update:getState"),
+  checkForUpdates: () => ipcRenderer.invoke("update:check"),
+  installUpdate: () => ipcRenderer.invoke("update:install"),
+  openRelease: () => ipcRenderer.invoke("update:openRelease"),
+  onUpdateStatus: (cb) =>
+    ipcRenderer.on("update:status", (_event, data) => cb(data)),
   authStatus: () => ipcRenderer.invoke("auth:status"),
   login: () => ipcRenderer.invoke("auth:login"),
   logout: () => ipcRenderer.invoke("auth:logout"),

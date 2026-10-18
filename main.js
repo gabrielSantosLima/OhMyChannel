@@ -83,6 +83,7 @@ const { IntroStore } = require("./src/domain/services/IntroStore");
 const { VideoRenderer } = require("./src/domain/services/VideoRenderer");
 const ffmpegPath = require("ffmpeg-static");
 const ffprobePath = require("ffprobe-static").path;
+const { autoUpdater } = require("electron-updater");
 
 const { AuthController } = require("./src/controllers/AuthController");
 const { UploadController } = require("./src/controllers/UploadController");
@@ -493,6 +494,72 @@ function cancelRender(id) {
   renderController.cancel(id);
 }
 
+/* ---------- Auto update ---------- */
+
+const RELEASES_URL = "https://github.com/gabrielSantosLima/OhMyChannel/releases";
+const UPDATE_INTERVAL_MS = 6 * 60 * 60 * 1000;
+
+let updateState = {
+  state: "idle",
+  version: null,
+  percent: 0,
+  error: null,
+  canInstall: false,
+};
+let updateTimer = null;
+
+function sendUpdateState() {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("update:status", updateState);
+  }
+}
+
+function setUpdateState(patch) {
+  updateState = { ...updateState, ...patch };
+  sendUpdateState();
+}
+
+function setupUpdater() {
+  if (!app.isPackaged) return;
+
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.allowPrerelease = app.getVersion().includes("-");
+
+  autoUpdater.on("checking-for-update", () =>
+    setUpdateState({ state: "checking", error: null })
+  );
+  autoUpdater.on("update-available", (info) =>
+    setUpdateState({ state: "available", version: info.version, error: null })
+  );
+  autoUpdater.on("update-not-available", () =>
+    setUpdateState({ state: "idle", version: null, percent: 0, error: null, canInstall: false })
+  );
+  autoUpdater.on("download-progress", (progress) =>
+    setUpdateState({
+      state: "downloading",
+      percent: Math.round(progress.percent || 0),
+    })
+  );
+  autoUpdater.on("update-downloaded", (info) =>
+    setUpdateState({
+      state: "downloaded",
+      version: info.version,
+      percent: 100,
+      canInstall: true,
+    })
+  );
+  autoUpdater.on("error", (err) =>
+    setUpdateState({ state: "error", error: err.message })
+  );
+
+  autoUpdater.checkForUpdates().catch(() => {});
+  updateTimer = setInterval(
+    () => autoUpdater.checkForUpdates().catch(() => {}),
+    UPDATE_INTERVAL_MS
+  );
+}
+
 /* ---------- IPC ---------- */
 
 function registerIpc() {
@@ -535,6 +602,24 @@ function registerIpc() {
     if (typeof url === "string" && /^https?:\/\//i.test(url)) {
       shell.openExternal(url);
     }
+  });
+
+  ipcMain.handle("update:getState", () => updateState);
+  ipcMain.handle("update:check", async () => {
+    if (app.isPackaged) {
+      try {
+        await autoUpdater.checkForUpdates();
+      } catch (err) {
+        setUpdateState({ state: "error", error: err.message });
+      }
+    }
+    return updateState;
+  });
+  ipcMain.handle("update:install", () => {
+    if (app.isPackaged) autoUpdater.quitAndInstall();
+  });
+  ipcMain.handle("update:openRelease", () => {
+    shell.openExternal(RELEASES_URL);
   });
 
   ipcMain.handle("settings:get", () => settingsController.get());
@@ -643,6 +728,7 @@ if (!gotTheLock) {
     registerIpc();
     createWindow();
     createTray();
+    setupUpdater();
 
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();

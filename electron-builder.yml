@@ -2,6 +2,10 @@ appId: com.ohmychannel.app
 productName: OhMyChannel
 directories:
   output: dist
+publish:
+  provider: github
+  owner: gabrielSantosLima
+  repo: OhMyChannel
 files:
   - "**/*"
   - "!client_secrets.json"
