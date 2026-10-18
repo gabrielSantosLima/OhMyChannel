@@ -65,6 +65,11 @@ const els = {
   credError: document.getElementById("credError"),
   setupBanner: document.getElementById("setupBanner"),
   setupBannerBtn: document.getElementById("setupBannerBtn"),
+  updateWrap: document.getElementById("updateWrap"),
+  updateButton: document.getElementById("updateButton"),
+  updateDot: document.getElementById("updateDot"),
+  updateProgress: document.getElementById("updateProgress"),
+  updatePopover: document.getElementById("updatePopover"),
 };
 
 const items = [];
@@ -2620,6 +2625,107 @@ document.addEventListener("click", (event) => {
   window.api.openExternal(trigger.dataset.url);
 });
 
+/* ---------- Update indicator ---------- */
+
+let updaterState = {
+  state: "idle",
+  version: null,
+  percent: 0,
+  error: null,
+  canInstall: false,
+};
+
+function hideUpdatePopover() {
+  els.updatePopover.classList.add("hidden");
+}
+
+function renderUpdate() {
+  const current = updaterState;
+  const visible = ["available", "downloading", "downloaded", "error"].includes(
+    current.state
+  );
+  els.updateWrap.classList.toggle("hidden", !visible);
+  els.updateButton.classList.toggle(
+    "active",
+    current.state === "available" || current.state === "downloaded"
+  );
+  els.updateDot.classList.toggle(
+    "hidden",
+    !(current.state === "available" || current.state === "downloaded")
+  );
+  const downloading = current.state === "downloading";
+  els.updateProgress.classList.toggle("hidden", !downloading);
+  if (downloading) els.updateProgress.textContent = current.percent + "%";
+
+  if (!visible) {
+    hideUpdatePopover();
+    return;
+  }
+
+  const popover = els.updatePopover;
+  popover.innerHTML = "";
+  const title = document.createElement("div");
+  title.className = "update-title";
+  const text = document.createElement("div");
+  text.className = "update-text";
+
+  if (current.state === "available") {
+    title.textContent = "Update available";
+    text.textContent = `Version ${current.version} found. Starting download...`;
+  } else if (current.state === "downloading") {
+    title.textContent = "Downloading update";
+    text.textContent = `${current.percent}% of version ${current.version || ""}`;
+  } else if (current.state === "downloaded") {
+    title.textContent = "Update ready";
+    text.textContent = `Version ${current.version} downloaded. Restart to install.`;
+  } else if (current.state === "error") {
+    title.textContent = "Update failed";
+    text.textContent = current.error || "Unknown error";
+  }
+  popover.append(title, text);
+
+  const actions = document.createElement("div");
+  actions.className = "update-actions";
+  if (current.state === "downloaded") {
+    const restart = document.createElement("button");
+    restart.className = "primary";
+    restart.textContent = "Restart to update";
+    restart.addEventListener("click", () => window.api.installUpdate());
+    actions.appendChild(restart);
+  }
+  const release = document.createElement("button");
+  release.className = "ghost";
+  release.textContent = "Open release page";
+  release.addEventListener("click", () => window.api.openRelease());
+  actions.appendChild(release);
+  popover.appendChild(actions);
+}
+
+async function loadUpdateState() {
+  try {
+    updaterState = await window.api.getUpdateState();
+  } catch {
+    updaterState = { state: "idle", version: null, percent: 0, error: null };
+  }
+  renderUpdate();
+}
+
+els.updateButton.addEventListener("click", (event) => {
+  event.stopPropagation();
+  els.updatePopover.classList.toggle("hidden");
+});
+
+window.api.onUpdateStatus((data) => {
+  updaterState = data;
+  renderUpdate();
+});
+
+document.addEventListener("click", (event) => {
+  if (els.updateWrap && !els.updateWrap.contains(event.target)) {
+    hideUpdatePopover();
+  }
+});
+
 /* ---------- Auth ---------- */
 
 function setAuthUi(authenticated) {
@@ -2720,6 +2826,7 @@ async function init() {
   resetEditor();
   await loadIntros();
   await loadConfigInfo();
+  await loadUpdateState();
   await refreshAuth();
   await loadPlaylists();
   refreshQueueInfo();
