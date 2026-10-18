@@ -402,6 +402,11 @@ function registerIpc() {
     templateController.save(templates)
   );
 
+  ipcMain.handle("app:info", () => ({
+    name: "OhMyChannel",
+    version: app.getVersion(),
+  }));
+
   ipcMain.handle("settings:get", () => settingsController.get());
   ipcMain.handle("settings:save", async (_event, changes) => {
     const updated = await settingsController.save(changes);

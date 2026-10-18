@@ -60,6 +60,14 @@
             </svg>
             <span>Settings</span>
           </button>
+          <button class="nav-item" data-view="about">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path
+                d="M11 9h2V7h-2m1 13c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m-1 15h2v-6h-2v6z"
+              />
+            </svg>
+            <span>About</span>
+          </button>
         </nav>
 
         <div class="sidebar-footer">
@@ -175,6 +183,21 @@
               min="1"
               max="10"
             />
+          </div>
+        </section>
+
+        <section id="view-about" class="view">
+          <h2>About</h2>
+          <div class="about">
+            <img class="about-logo" src="../assets/icon.png" alt="OhMyChannel" />
+            <div class="about-name">OhMyChannel</div>
+            <div class="about-version">
+              Version <span id="aboutVersion">-</span>
+            </div>
+            <p class="muted">
+              Pre-upload helper for YouTube. Fill in the title and description
+              now and finish the rest in YouTube Studio.
+            </p>
           </div>
         </section>
       </main>

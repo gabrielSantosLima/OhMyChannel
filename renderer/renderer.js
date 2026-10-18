@@ -34,6 +34,7 @@ const els = {
   thumbParams: document.getElementById("thumbParams"),
   thumbContext: document.getElementById("thumbContext"),
   thumbList: document.getElementById("thumbList"),
+  aboutVersion: document.getElementById("aboutVersion"),
 };
 
 const items = [];
@@ -2155,6 +2156,12 @@ async function init() {
     settings = await window.api.getSettings();
   } catch {
     /* keep defaults */
+  }
+  try {
+    const info = await window.api.getAppInfo();
+    els.aboutVersion.textContent = info.version;
+  } catch {
+    /* ignore */
   }
   applyTheme(settings.theme);
   renderSettingsForm();

@@ -1099,3 +1099,33 @@ label {
   text-align: center;
   padding: 10px;
 }
+
+/* ---------- About ---------- */
+
+.about {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: 480px;
+}
+
+.about-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 14px;
+}
+
+.about-name {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.about-version {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.about p {
+  margin: 6px 0 0;
+}

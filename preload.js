@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer, webUtils } = require("electron");
 
 contextBridge.exposeInMainWorld("api", {
+  getAppInfo: () => ipcRenderer.invoke("app:info"),
   authStatus: () => ipcRenderer.invoke("auth:status"),
   login: () => ipcRenderer.invoke("auth:login"),
   logout: () => ipcRenderer.invoke("auth:logout"),
