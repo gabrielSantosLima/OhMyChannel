@@ -13,6 +13,9 @@ const els = {
   themeSegmented: document.getElementById("themeSegmented"),
   bgToggle: document.getElementById("bgToggle"),
   parallelInput: document.getElementById("parallelInput"),
+  renderParallelInput: document.getElementById("renderParallelInput"),
+  renderResolutionSelect: document.getElementById("renderResolutionSelect"),
+  autoSubmitToggle: document.getElementById("autoSubmitToggle"),
   collapseBtn: document.getElementById("collapseBtn"),
   tplName: document.getElementById("tplName"),
   tplParams: document.getElementById("tplParams"),
@@ -35,6 +38,26 @@ const els = {
   thumbContext: document.getElementById("thumbContext"),
   thumbList: document.getElementById("thumbList"),
   aboutVersion: document.getElementById("aboutVersion"),
+  introName: document.getElementById("introName"),
+  introFileBtn: document.getElementById("introFileBtn"),
+  introFileName: document.getElementById("introFileName"),
+  introVideoEffect: document.getElementById("introVideoEffect"),
+  introVideoFadeIn: document.getElementById("introVideoFadeIn"),
+  introVideoFadeOut: document.getElementById("introVideoFadeOut"),
+  introVideoDuration: document.getElementById("introVideoDuration"),
+  introAudioEffect: document.getElementById("introAudioEffect"),
+  introAudioFadeIn: document.getElementById("introAudioFadeIn"),
+  introAudioFadeOut: document.getElementById("introAudioFadeOut"),
+  introAudioDuration: document.getElementById("introAudioDuration"),
+  introPreviewBtn: document.getElementById("introPreviewBtn"),
+  introSave: document.getElementById("introSave"),
+  introReset: document.getElementById("introReset"),
+  introError: document.getElementById("introError"),
+  introPreview: document.getElementById("introPreview"),
+  introPreviewVideo: document.getElementById("introPreviewVideo"),
+  introPreviewPlaceholder: document.getElementById("introPreviewPlaceholder"),
+  introPreviewBlack: document.getElementById("introPreviewBlack"),
+  introList: document.getElementById("introList"),
 };
 
 const items = [];
@@ -50,6 +73,10 @@ let selectedElementId = null;
 let editingThumbnailId = null;
 let thumbStageScale = 1;
 let stageRenderTimer = null;
+let intros = [];
+let editingIntroId = null;
+let introPath = null;
+let introPreviewTimers = [];
 let settings = { theme: "dark", background: true, maxParallel: 4 };
 let idSeed = 0;
 
@@ -112,6 +139,9 @@ function renderSettingsForm() {
   );
   els.bgToggle.checked = !!settings.background;
   els.parallelInput.value = settings.maxParallel;
+  els.renderParallelInput.value = settings.maxParallelRenders;
+  els.renderResolutionSelect.value = settings.renderResolution;
+  els.autoSubmitToggle.checked = !!settings.autoSubmitAfterRender;
   els.app.classList.toggle("collapsed", !!settings.sidebarCollapsed);
 }
 
@@ -131,6 +161,18 @@ els.bgToggle.addEventListener("change", () =>
 
 els.parallelInput.addEventListener("change", () =>
   persistSettings({ maxParallel: Number(els.parallelInput.value) })
+);
+
+els.renderParallelInput.addEventListener("change", () =>
+  persistSettings({ maxParallelRenders: Number(els.renderParallelInput.value) })
+);
+
+els.renderResolutionSelect.addEventListener("change", () =>
+  persistSettings({ renderResolution: els.renderResolutionSelect.value })
+);
+
+els.autoSubmitToggle.addEventListener("change", () =>
+  persistSettings({ autoSubmitAfterRender: els.autoSubmitToggle.checked })
 );
 
 els.collapseBtn.addEventListener("click", () =>
@@ -2090,6 +2132,298 @@ window.addEventListener("resize", () => {
   }
 });
 
+/* ---------- Intros ---------- */
+
+const DEFAULT_INTRO_TRANSITION = {
+  video: { effect: "none", fadeIn: 0, fadeOut: 0, duration: 1 },
+  audio: { effect: "none", fadeIn: 0, fadeOut: 0, duration: 1 },
+};
+
+function toFileUrl(filePath) {
+  return encodeURI("file:///" + String(filePath).replace(/\\/g, "/"));
+}
+
+function readIntroTransition() {
+  return {
+    video: {
+      effect: els.introVideoEffect.value,
+      fadeIn: Number(els.introVideoFadeIn.value) || 0,
+      fadeOut: Number(els.introVideoFadeOut.value) || 0,
+      duration: Number(els.introVideoDuration.value) || 0,
+    },
+    audio: {
+      effect: els.introAudioEffect.value,
+      fadeIn: Number(els.introAudioFadeIn.value) || 0,
+      fadeOut: Number(els.introAudioFadeOut.value) || 0,
+      duration: Number(els.introAudioDuration.value) || 0,
+    },
+  };
+}
+
+function updateIntroEffectFields() {
+  const tracks = [
+    [
+      els.introVideoEffect.value,
+      els.introVideoFadeIn,
+      els.introVideoFadeOut,
+      els.introVideoDuration,
+    ],
+    [
+      els.introAudioEffect.value,
+      els.introAudioFadeIn,
+      els.introAudioFadeOut,
+      els.introAudioDuration,
+    ],
+  ];
+  tracks.forEach(([effect, fadeIn, fadeOut, duration]) => {
+    fadeIn.disabled = effect !== "fade";
+    fadeOut.disabled = effect !== "fade";
+    duration.disabled = effect !== "crossfade";
+  });
+}
+
+function fillIntroForm(intro) {
+  editingIntroId = intro ? intro.id : null;
+  els.introName.value = intro ? intro.name : "";
+  introPath = intro ? intro.path : null;
+  els.introFileName.textContent = introPath
+    ? introPath.split(/[\\/]/).pop()
+    : "No video";
+
+  const transition =
+    (intro && intro.transition) || DEFAULT_INTRO_TRANSITION;
+  els.introVideoEffect.value = transition.video.effect;
+  els.introVideoFadeIn.value = transition.video.fadeIn;
+  els.introVideoFadeOut.value = transition.video.fadeOut;
+  els.introVideoDuration.value = transition.video.duration;
+  els.introAudioEffect.value = transition.audio.effect;
+  els.introAudioFadeIn.value = transition.audio.fadeIn;
+  els.introAudioFadeOut.value = transition.audio.fadeOut;
+  els.introAudioDuration.value = transition.audio.duration;
+  els.introError.textContent = "";
+  updateIntroEffectFields();
+}
+
+function resetIntroEditor() {
+  fillIntroForm(null);
+}
+
+async function saveIntro() {
+  const name = els.introName.value.trim();
+  if (!name) {
+    els.introError.textContent = "Enter the intro name.";
+    return;
+  }
+  if (!introPath) {
+    els.introError.textContent = "Choose an intro video.";
+    return;
+  }
+  const intro = {
+    id: editingIntroId || undefined,
+    name,
+    path: introPath,
+    transition: readIntroTransition(),
+  };
+  const index = intros.findIndex((item) => item.id === intro.id);
+  if (index === -1) intros.push(intro);
+  else intros[index] = intro;
+  try {
+    intros = await window.api.saveIntros(intros);
+    renderIntroList();
+    resetIntroEditor();
+    hideIntroPreview();
+    setMessage("Intro saved.", "ok");
+  } catch (err) {
+    els.introError.textContent = err.message;
+  }
+}
+
+function renderIntroList() {
+  els.introList.innerHTML = "";
+  if (!intros.length) {
+    const empty = document.createElement("div");
+    empty.className = "tpl-empty";
+    empty.textContent = "No intros yet.";
+    els.introList.appendChild(empty);
+    return;
+  }
+  intros.forEach((intro) => {
+    const item = document.createElement("div");
+    item.className = "tpl-item";
+
+    const info = document.createElement("div");
+    info.className = "tpl-info";
+    const name = document.createElement("span");
+    name.className = "tpl-name";
+    name.textContent = intro.name;
+    const detail = document.createElement("span");
+    detail.className = "tpl-detail";
+    detail.textContent = `video: ${intro.transition.video.effect} | audio: ${intro.transition.audio.effect}`;
+    info.append(name, detail);
+
+    const buttons = document.createElement("div");
+    buttons.className = "tpl-item-actions";
+    const edit = document.createElement("button");
+    edit.className = "ghost";
+    edit.textContent = "Edit";
+    edit.addEventListener("click", () => {
+      fillIntroForm(intro);
+      hideIntroPreview();
+      showView("intros");
+    });
+    const del = document.createElement("button");
+    del.className = "danger";
+    del.textContent = "Delete";
+    del.addEventListener("click", async () => {
+      intros = intros.filter((entry) => entry.id !== intro.id);
+      intros = await window.api.saveIntros(intros);
+      renderIntroList();
+      if (editingIntroId === intro.id) resetIntroEditor();
+    });
+    buttons.append(edit, del);
+
+    item.append(info, buttons);
+    els.introList.appendChild(item);
+  });
+}
+
+async function loadIntros() {
+  try {
+    intros = await window.api.listIntros();
+  } catch {
+    intros = [];
+  }
+  renderIntroList();
+}
+
+function clearIntroPreviewTimers() {
+  introPreviewTimers.forEach(clearTimeout);
+  introPreviewTimers = [];
+}
+
+function hideIntroPreview() {
+  clearIntroPreviewTimers();
+  els.introPreview.classList.add("hidden");
+  els.introPreviewVideo.pause();
+  els.introPreviewVideo.removeAttribute("src");
+  els.introPreviewVideo.load();
+}
+
+function previewIntro() {
+  if (!introPath) {
+    els.introError.textContent = "Choose an intro video first.";
+    return;
+  }
+  const video = els.introPreviewVideo;
+  const placeholder = els.introPreviewPlaceholder;
+  const black = els.introPreviewBlack;
+  const transition = readIntroTransition();
+
+  clearIntroPreviewTimers();
+  els.introPreview.classList.remove("hidden");
+
+  black.style.transition = "none";
+  video.style.transition = "none";
+  black.style.opacity = "0";
+  placeholder.style.opacity = "1";
+  video.style.opacity = "1";
+  video.volume = 1;
+  video.src = toFileUrl(introPath);
+
+  const onTime = () => {
+    const duration = video.duration;
+    if (!duration || Number.isNaN(duration)) return;
+
+    if (transition.video.effect === "crossfade") {
+      const start = duration - transition.video.duration;
+      if (video.currentTime >= start) {
+        video.removeEventListener("timeupdate", onTime);
+        runIntroCrossfade(transition.video.duration);
+      }
+    } else if (transition.video.effect === "fade") {
+      const start = duration - transition.video.fadeOut;
+      if (video.currentTime >= start) {
+        video.removeEventListener("timeupdate", onTime);
+        runIntroFade(transition.video.fadeOut, transition.video.fadeIn);
+      }
+    }
+
+    const audio = transition.audio;
+    if (audio.effect !== "none") {
+      const length =
+        audio.effect === "crossfade" ? audio.duration : audio.fadeOut;
+      const start = duration - length;
+      if (length > 0 && video.currentTime >= start) {
+        video.volume = Math.max(0, 1 - (video.currentTime - start) / length);
+      }
+    }
+  };
+
+  video.addEventListener("timeupdate", onTime);
+  video.addEventListener(
+    "ended",
+    () => {
+      if (transition.video.effect === "none") {
+        video.style.transition = "opacity 0.15s linear";
+        video.style.opacity = "0";
+      }
+    },
+    { once: true }
+  );
+
+  video.play().catch(() => {});
+}
+
+function runIntroCrossfade(duration) {
+  const video = els.introPreviewVideo;
+  const placeholder = els.introPreviewPlaceholder;
+  const seconds = Math.max(0.1, duration);
+  placeholder.style.transition = "none";
+  placeholder.style.opacity = "1";
+  video.style.transition = `opacity ${seconds}s linear`;
+  requestAnimationFrame(() => {
+    video.style.opacity = "0";
+  });
+}
+
+function runIntroFade(fadeOut, fadeIn) {
+  const video = els.introPreviewVideo;
+  const black = els.introPreviewBlack;
+  const out = Math.max(0.1, fadeOut);
+  const back = Math.max(0.1, fadeIn);
+
+  black.style.transition = `opacity ${out}s linear`;
+  video.style.transition = `opacity ${out}s linear`;
+  requestAnimationFrame(() => {
+    black.style.opacity = "1";
+    video.style.opacity = "0";
+  });
+  introPreviewTimers.push(
+    setTimeout(() => {
+      black.style.transition = `opacity ${back}s linear`;
+      requestAnimationFrame(() => {
+        black.style.opacity = "0";
+      });
+    }, out * 1000)
+  );
+}
+
+els.introFileBtn.addEventListener("click", async () => {
+  const path = await window.api.pickIntro();
+  if (!path) return;
+  introPath = path;
+  els.introFileName.textContent = path.split(/[\\/]/).pop();
+});
+
+els.introVideoEffect.addEventListener("change", updateIntroEffectFields);
+els.introAudioEffect.addEventListener("change", updateIntroEffectFields);
+els.introPreviewBtn.addEventListener("click", previewIntro);
+els.introSave.addEventListener("click", saveIntro);
+els.introReset.addEventListener("click", () => {
+  resetIntroEditor();
+  hideIntroPreview();
+});
+
 /* ---------- Auth ---------- */
 
 function setAuthUi(authenticated) {
@@ -2170,6 +2504,7 @@ async function init() {
   await loadThumbnailFonts();
   await loadThumbnailTemplates();
   resetEditor();
+  await loadIntros();
   await refreshAuth();
   await loadPlaylists();
   refreshQueueInfo();

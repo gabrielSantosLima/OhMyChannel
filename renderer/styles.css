@@ -1129,3 +1129,116 @@ label {
 .about p {
   margin: 6px 0 0;
 }
+
+/* ---------- Intros ---------- */
+
+.intro-editor {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.intro-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-width: 360px;
+  max-width: 680px;
+}
+
+.intro-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.intro-row input[type="text"] {
+  flex: 1;
+  min-width: 160px;
+}
+
+.intro-transitions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.intro-track {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--bg-soft);
+}
+
+.intro-track-title {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.intro-track-fields {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.intro-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.intro-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.intro-preview-stage {
+  position: relative;
+  width: 360px;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.intro-preview-placeholder,
+.intro-preview-black,
+.intro-preview-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.intro-preview-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1c1c1c;
+  color: var(--muted);
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.intro-preview-black {
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.intro-preview-video {
+  object-fit: contain;
+  background: #000;
+}

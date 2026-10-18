@@ -65,11 +65,18 @@ const {
   ListThumbnailFontsUseCase,
 } = require("./src/domain/useCases/ListThumbnailFontsUseCase");
 const {
+  ListIntrosUseCase,
+} = require("./src/domain/useCases/ListIntrosUseCase");
+const {
+  SaveIntrosUseCase,
+} = require("./src/domain/useCases/SaveIntrosUseCase");
+const {
   ThumbnailRenderer,
 } = require("./src/domain/services/ThumbnailRenderer");
 const {
   ThumbnailTemplateStore,
 } = require("./src/domain/services/ThumbnailTemplateStore");
+const { IntroStore } = require("./src/domain/services/IntroStore");
 
 const { AuthController } = require("./src/controllers/AuthController");
 const { UploadController } = require("./src/controllers/UploadController");
@@ -83,6 +90,7 @@ const { PlaylistController } = require("./src/controllers/PlaylistController");
 const {
   ThumbnailController,
 } = require("./src/controllers/ThumbnailController");
+const { IntroController } = require("./src/controllers/IntroController");
 
 const SCOPES = [
   "https://www.googleapis.com/auth/youtube.upload",
@@ -103,6 +111,7 @@ let templateController = null;
 let settingsController = null;
 let playlistController = null;
 let thumbnailController = null;
+let introController = null;
 
 const activeUploads = new Map();
 const uploadQueue = [];
@@ -181,6 +190,14 @@ function buildContainer() {
     listThumbnailFontsUseCase: new ListThumbnailFontsUseCase({
       thumbnailRenderer,
     }),
+  });
+
+  const introStore = new IntroStore({
+    filePath: path.join(app.getPath("userData"), "intro-videos.json"),
+  });
+  introController = new IntroController({
+    listIntrosUseCase: new ListIntrosUseCase({ introStore }),
+    saveIntrosUseCase: new SaveIntrosUseCase({ introStore }),
   });
 }
 
@@ -426,6 +443,11 @@ function registerIpc() {
   );
   ipcMain.handle("thumbnails:fonts", () => thumbnailController.fonts());
 
+  ipcMain.handle("intros:list", () => introController.list());
+  ipcMain.handle("intros:save", (_event, intros) =>
+    introController.save(intros)
+  );
+
   ipcMain.handle("thumbnails:export", async (_event, payload) => {
     const result = await dialog.showSaveDialog(mainWindow, {
       title: "Export thumbnail",
@@ -456,6 +478,18 @@ function registerIpc() {
       properties: ["openFile"],
       filters: [
         { name: "Images", extensions: ["jpg", "jpeg", "png", "webp"] },
+      ],
+    });
+    if (result.canceled || !result.filePaths.length) return null;
+    return result.filePaths[0];
+  });
+
+  ipcMain.handle("dialog:pickIntro", async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: "Choose the intro video",
+      properties: ["openFile"],
+      filters: [
+        { name: "Videos", extensions: ["mp4", "mkv", "mov", "avi", "webm"] },
       ],
     });
     if (result.canceled || !result.filePaths.length) return null;

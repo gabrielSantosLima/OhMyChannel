@@ -52,6 +52,14 @@
             </svg>
             <span>Thumbnails</span>
           </button>
+          <button class="nav-item" data-view="intros">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path
+                d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-9 12V7l6 3.5L11 14z"
+              />
+            </svg>
+            <span>Intros</span>
+          </button>
           <button class="nav-item" data-view="settings">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
               <path
@@ -141,6 +149,88 @@
           <div id="thumbList" class="tpl-list"></div>
         </section>
 
+        <section id="view-intros" class="view">
+          <h2>Intros</h2>
+          <div class="intro-editor">
+            <div class="intro-form">
+              <div class="intro-row">
+                <input id="introName" type="text" placeholder="Intro name" />
+                <button id="introFileBtn">Choose video</button>
+                <span id="introFileName" class="thumb-name">No video</span>
+              </div>
+              <div class="intro-transitions">
+                <div class="intro-track">
+                  <span class="intro-track-title">Video</span>
+                  <div class="intro-track-fields">
+                    <label class="thumb-field">
+                      <span>Effect</span>
+                      <select id="introVideoEffect">
+                        <option value="none">None</option>
+                        <option value="fade">Fade</option>
+                        <option value="crossfade">Crossfade</option>
+                      </select>
+                    </label>
+                    <label class="thumb-field">
+                      <span>Fade in (s)</span>
+                      <input id="introVideoFadeIn" type="number" min="0" step="0.1" value="0" />
+                    </label>
+                    <label class="thumb-field">
+                      <span>Fade out (s)</span>
+                      <input id="introVideoFadeOut" type="number" min="0" step="0.1" value="0" />
+                    </label>
+                    <label class="thumb-field">
+                      <span>Duration (s)</span>
+                      <input id="introVideoDuration" type="number" min="0" step="0.1" value="1" />
+                    </label>
+                  </div>
+                </div>
+                <div class="intro-track">
+                  <span class="intro-track-title">Audio</span>
+                  <div class="intro-track-fields">
+                    <label class="thumb-field">
+                      <span>Effect</span>
+                      <select id="introAudioEffect">
+                        <option value="none">None</option>
+                        <option value="fade">Fade</option>
+                        <option value="crossfade">Crossfade</option>
+                      </select>
+                    </label>
+                    <label class="thumb-field">
+                      <span>Fade in (s)</span>
+                      <input id="introAudioFadeIn" type="number" min="0" step="0.1" value="0" />
+                    </label>
+                    <label class="thumb-field">
+                      <span>Fade out (s)</span>
+                      <input id="introAudioFadeOut" type="number" min="0" step="0.1" value="0" />
+                    </label>
+                    <label class="thumb-field">
+                      <span>Duration (s)</span>
+                      <input id="introAudioDuration" type="number" min="0" step="0.1" value="1" />
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div class="intro-actions">
+                <button id="introPreviewBtn">Preview</button>
+                <button id="introSave" class="primary">Save intro</button>
+                <button id="introReset" class="ghost">New</button>
+                <span id="introError" class="tpl-error"></span>
+              </div>
+            </div>
+            <div id="introPreview" class="intro-preview hidden">
+              <div class="intro-preview-stage">
+                <div id="introPreviewPlaceholder" class="intro-preview-placeholder">
+                  MAIN VIDEO
+                </div>
+                <div id="introPreviewBlack" class="intro-preview-black"></div>
+                <video id="introPreviewVideo" class="intro-preview-video" playsinline></video>
+              </div>
+              <span class="muted">Approximate preview</span>
+            </div>
+          </div>
+          <div id="introList" class="tpl-list"></div>
+        </section>
+
         <section id="view-settings" class="view">
           <h2>Settings</h2>
 
@@ -183,6 +273,53 @@
               min="1"
               max="10"
             />
+          </div>
+
+          <div class="setting">
+            <div class="setting-info">
+              <span class="setting-title">Parallel renders</span>
+              <span class="setting-desc">
+                Maximum number of videos rendered (intro + video) at the same
+                time.
+              </span>
+            </div>
+            <input
+              type="number"
+              id="renderParallelInput"
+              class="number-input"
+              min="1"
+              max="10"
+            />
+          </div>
+
+          <div class="setting">
+            <div class="setting-info">
+              <span class="setting-title">Render resolution</span>
+              <span class="setting-desc">
+                Resolution used when rendering the intro with the video.
+              </span>
+            </div>
+            <select id="renderResolutionSelect" class="number-input">
+              <option value="1920x1080">1080p (1920x1080)</option>
+              <option value="2560x1440">2K (2560x1440)</option>
+              <option value="3840x2160">4K (3840x2160)</option>
+            </select>
+          </div>
+
+          <div class="setting">
+            <div class="setting-info">
+              <span class="setting-title">
+                Submit automatically after rendering
+              </span>
+              <span class="setting-desc">
+                When enabled, the video is uploaded right after rendering. When
+                disabled, you confirm the upload manually.
+              </span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="autoSubmitToggle" />
+              <span class="slider"></span>
+            </label>
           </div>
         </section>
 

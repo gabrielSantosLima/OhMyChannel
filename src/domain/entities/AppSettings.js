@@ -1,19 +1,34 @@
 const THEMES = ["dark", "light"];
+const RESOLUTIONS = ["1920x1080", "2560x1440", "3840x2160"];
 const DEFAULTS = {
   theme: "dark",
   background: true,
   maxParallel: 4,
   sidebarCollapsed: false,
+  autoSubmitAfterRender: true,
+  renderResolution: "2560x1440",
+  maxParallelRenders: 2,
 };
 const MIN_PARALLEL = 1;
 const MAX_PARALLEL = 10;
 
 class AppSettings {
-  constructor({ theme, background, maxParallel, sidebarCollapsed }) {
+  constructor({
+    theme,
+    background,
+    maxParallel,
+    sidebarCollapsed,
+    autoSubmitAfterRender,
+    renderResolution,
+    maxParallelRenders,
+  }) {
     this.theme = theme;
     this.background = background;
     this.maxParallel = maxParallel;
     this.sidebarCollapsed = sidebarCollapsed;
+    this.autoSubmitAfterRender = autoSubmitAfterRender;
+    this.renderResolution = renderResolution;
+    this.maxParallelRenders = maxParallelRenders;
   }
 
   static from(input = {}) {
@@ -21,20 +36,32 @@ class AppSettings {
     const background =
       input.background === undefined ? DEFAULTS.background : !!input.background;
 
-    let maxParallel = Number(input.maxParallel);
-    if (!Number.isFinite(maxParallel)) maxParallel = DEFAULTS.maxParallel;
-    maxParallel = Math.min(
-      MAX_PARALLEL,
-      Math.max(MIN_PARALLEL, Math.round(maxParallel))
-    );
+    const clampParallel = (value, fallback) => {
+      let parallel = Number(value);
+      if (!Number.isFinite(parallel)) parallel = fallback;
+      return Math.min(MAX_PARALLEL, Math.max(MIN_PARALLEL, Math.round(parallel)));
+    };
 
-    const sidebarCollapsed = !!input.sidebarCollapsed;
+    const autoSubmitAfterRender =
+      input.autoSubmitAfterRender === undefined
+        ? DEFAULTS.autoSubmitAfterRender
+        : !!input.autoSubmitAfterRender;
+
+    const renderResolution = RESOLUTIONS.includes(input.renderResolution)
+      ? input.renderResolution
+      : DEFAULTS.renderResolution;
 
     return new AppSettings({
       theme,
       background,
-      maxParallel,
-      sidebarCollapsed,
+      maxParallel: clampParallel(input.maxParallel, DEFAULTS.maxParallel),
+      sidebarCollapsed: !!input.sidebarCollapsed,
+      autoSubmitAfterRender,
+      renderResolution,
+      maxParallelRenders: clampParallel(
+        input.maxParallelRenders,
+        DEFAULTS.maxParallelRenders
+      ),
     });
   }
 
@@ -44,6 +71,7 @@ class AppSettings {
 }
 
 AppSettings.THEMES = THEMES;
+AppSettings.RESOLUTIONS = RESOLUTIONS;
 AppSettings.DEFAULTS = DEFAULTS;
 
 module.exports = { AppSettings };

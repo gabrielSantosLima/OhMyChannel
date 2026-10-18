@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld("api", {
   logout: () => ipcRenderer.invoke("auth:logout"),
   pickVideo: () => ipcRenderer.invoke("dialog:pickVideo"),
   pickThumbnail: () => ipcRenderer.invoke("dialog:pickThumbnail"),
+  pickIntro: () => ipcRenderer.invoke("dialog:pickIntro"),
   getPathForFile: (file) => webUtils.getPathForFile(file),
   upload: (payload) => ipcRenderer.invoke("upload:start", payload),
   cancelUpload: (id) => ipcRenderer.invoke("upload:cancel", id),
@@ -19,6 +20,8 @@ contextBridge.exposeInMainWorld("api", {
   saveThumbnailTemplates: (list) =>
     ipcRenderer.invoke("thumbnails:save", list),
   listThumbnailFonts: () => ipcRenderer.invoke("thumbnails:fonts"),
+  listIntros: () => ipcRenderer.invoke("intros:list"),
+  saveIntros: (list) => ipcRenderer.invoke("intros:save", list),
   exportThumbnail: (payload) =>
     ipcRenderer.invoke("thumbnails:export", payload),
   getSettings: () => ipcRenderer.invoke("settings:get"),
