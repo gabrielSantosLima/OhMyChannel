@@ -5,9 +5,10 @@
  * progress states.
  */
 (() => {
-  const templates = [];
-  const thumbnailTemplates = [];
-  const intros = [];
+  let templates = [];
+  let thumbnailTemplates = [];
+  let intros = [];
+  const copy = (item) => JSON.parse(JSON.stringify(item));
   const playlists = [
     { id: "pl-gameplay", title: "Gameplay", itemCount: 12 },
     { id: "pl-reviews", title: "Reviews", itemCount: 4 },
@@ -87,20 +88,18 @@
     },
     cancelRender: async () => {},
 
-    listTemplates: async () => templates,
+    listTemplates: async () => templates.map(copy),
     saveTemplates: async (list) => {
-      templates.length = 0;
-      templates.push(...list);
-      return templates;
+      templates = list.map(copy);
+      return templates.map(copy);
     },
 
     listPlaylists: async () => playlists,
 
-    listThumbnailTemplates: async () => thumbnailTemplates,
+    listThumbnailTemplates: async () => thumbnailTemplates.map(copy),
     saveThumbnailTemplates: async (list) => {
-      thumbnailTemplates.length = 0;
-      thumbnailTemplates.push(...list);
-      return thumbnailTemplates;
+      thumbnailTemplates = list.map(copy);
+      return thumbnailTemplates.map(copy);
     },
     listThumbnailFonts: async () => [
       { name: "BBH Hegarty", weights: [400] },
@@ -109,11 +108,10 @@
     generateThumbnail: async () => "data:image/png;base64,iVBORw0KGgo=",
     exportThumbnail: async () => null,
 
-    listIntros: async () => intros,
+    listIntros: async () => intros.map(copy),
     saveIntros: async (list) => {
-      intros.length = 0;
-      intros.push(...list);
-      return intros;
+      intros = list.map(copy);
+      return intros.map(copy);
     },
 
     getSettings: async () => settings,
