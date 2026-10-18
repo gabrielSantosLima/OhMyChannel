@@ -2,7 +2,8 @@ const fs = require("fs");
 
 class ClientConfigStore {
   constructor({ paths }) {
-    this.paths = paths;
+    const envPath = process.env.OHMYCHANNEL_SECRETS;
+    this.paths = envPath ? [envPath, ...paths] : [...paths];
   }
 
   load() {
@@ -19,8 +20,17 @@ class ClientConfigStore {
       }
     }
     throw new Error(
-      "client_secrets.json not found. Place the file in the app folder."
+      "client_secrets.json not found. Import your credentials in the Setup screen."
     );
+  }
+
+  hasCredentials() {
+    try {
+      this.load();
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 

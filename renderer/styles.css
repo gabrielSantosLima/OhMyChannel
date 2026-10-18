@@ -1272,3 +1272,128 @@ label {
   padding: 10px;
   outline: none;
 }
+
+/* ---------- Setup / Credentials ---------- */
+
+.setup-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 8px;
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+
+.setup-banner button {
+  flex-shrink: 0;
+}
+
+.cred-status {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.cred-status.on {
+  color: var(--ok);
+}
+
+.cred-status.off {
+  color: var(--error);
+}
+
+.timeline {
+  list-style: none;
+  margin: 12px 0 16px;
+  padding: 0;
+  counter-reset: step;
+  max-width: 720px;
+}
+
+.timeline li {
+  position: relative;
+  padding: 0 0 16px 44px;
+  counter-increment: step;
+}
+
+.timeline li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.timeline li::after {
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: 30px;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+}
+
+.timeline li:last-child::after {
+  display: none;
+}
+
+.timeline-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+
+.timeline-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.timeline-desc {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.timeline code {
+  background: var(--panel-2);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+button.link {
+  padding: 4px 8px;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.cred-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.cred-refs a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.cred-refs a:hover {
+  text-decoration: underline;
+}

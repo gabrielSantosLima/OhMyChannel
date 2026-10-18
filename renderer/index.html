@@ -60,6 +60,14 @@
             </svg>
             <span>Intros</span>
           </button>
+          <button class="nav-item" data-view="credentials">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path
+                d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"
+              />
+            </svg>
+            <span>Setup</span>
+          </button>
           <button class="nav-item" data-view="settings">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
               <path
@@ -98,6 +106,12 @@
       <main class="content">
         <section id="view-uploads" class="view active">
           <h2>Uploads</h2>
+          <div id="setupBanner" class="setup-banner hidden">
+            <span>
+              Finish the setup: add your Google credentials to start uploading.
+            </span>
+            <button id="setupBannerBtn">Go to Setup</button>
+          </div>
           <div class="toolbar">
             <button id="addBtn" class="primary">Add videos</button>
             <button id="uploadAllBtn">Upload all</button>
@@ -233,6 +247,122 @@
             </div>
           </div>
           <div id="introList" class="tpl-list"></div>
+        </section>
+
+        <section id="view-credentials" class="view">
+          <h2>Setup</h2>
+          <div id="credStatus" class="cred-status"></div>
+          <p class="muted">
+            OhMyChannel uses your own Google Cloud OAuth credentials. Follow the
+            steps below to create them and import the JSON file. No credentials
+            are bundled with the app.
+          </p>
+          <ol class="timeline">
+            <li>
+              <div class="timeline-body">
+                <span class="timeline-title">Create a Google Cloud project</span>
+                <span class="timeline-desc">
+                  Open the console and create a new project (or select an
+                  existing one).
+                </span>
+                <button class="ghost link" data-url="https://console.cloud.google.com/projectcreate">
+                  Open console
+                </button>
+              </div>
+            </li>
+            <li>
+              <div class="timeline-body">
+                <span class="timeline-title">Enable the YouTube Data API v3</span>
+                <span class="timeline-desc">
+                  In APIs &amp; Services &rarr; Library, find and enable the
+                  YouTube Data API v3.
+                </span>
+                <button class="ghost link" data-url="https://console.cloud.google.com/apis/library/youtube.googleapis.com">
+                  Open API library
+                </button>
+              </div>
+            </li>
+            <li>
+              <div class="timeline-body">
+                <span class="timeline-title">Configure the OAuth consent screen</span>
+                <span class="timeline-desc">
+                  Under Google Auth Platform, set the app name and support
+                  email, choose <strong>External</strong>, and add your Google
+                  account as a <strong>Test user</strong>.
+                </span>
+                <button class="ghost link" data-url="https://console.cloud.google.com/auth/overview">
+                  Open Auth Platform
+                </button>
+                <button class="ghost link" data-url="https://console.cloud.google.com/auth/audience">
+                  Open Audience
+                </button>
+              </div>
+            </li>
+            <li>
+              <div class="timeline-body">
+                <span class="timeline-title">Add the required scopes</span>
+                <span class="timeline-desc">
+                  Add
+                  <code>https://www.googleapis.com/auth/youtube.upload</code>
+                  and
+                  <code>https://www.googleapis.com/auth/youtube.force-ssl</code>.
+                </span>
+                <button class="ghost link" data-url="https://console.cloud.google.com/auth/scopes">
+                  Open scopes
+                </button>
+              </div>
+            </li>
+            <li>
+              <div class="timeline-body">
+                <span class="timeline-title">Create a Desktop OAuth client</span>
+                <span class="timeline-desc">
+                  Create an OAuth client of type <strong>Desktop app</strong> and
+                  download the JSON file (the client secret is shown only once).
+                </span>
+                <button class="ghost link" data-url="https://console.cloud.google.com/auth/clients">
+                  Open clients
+                </button>
+              </div>
+            </li>
+            <li>
+              <div class="timeline-body">
+                <span class="timeline-title">Import the JSON in OhMyChannel</span>
+                <span class="timeline-desc">
+                  Use the button below to import the downloaded
+                  <code>client_secrets.json</code>. It is stored locally in your
+                  user data folder.
+                </span>
+              </div>
+            </li>
+            <li>
+              <div class="timeline-body">
+                <span class="timeline-title">Sign in with Google</span>
+                <span class="timeline-desc">
+                  Go back to Uploads and click "Sign in with Google" to grant
+                  access.
+                </span>
+              </div>
+            </li>
+          </ol>
+          <div class="cred-actions">
+            <button id="credImport" class="primary">Import credentials</button>
+            <span id="credError" class="tpl-error"></span>
+          </div>
+          <p class="muted cred-refs">
+            Official docs:
+            <a href="#" data-url="https://developers.google.com/youtube/v3/guides/auth/installed-apps">OAuth for desktop apps</a>
+            &middot;
+            <a href="#" data-url="https://developers.google.com/youtube/v3/getting-started">YouTube Data API getting started</a>
+            &middot;
+            <a href="#" data-url="https://support.google.com/cloud/answer/6158849">OAuth consent setup</a>
+            &middot;
+            <a href="#" data-url="https://support.google.com/cloud/answer/15549257">Client secret visibility</a>
+          </p>
+          <p class="muted">
+            Note: while your app is in "Testing", refresh tokens expire in about
+            7 days. Publish the app or use a Workspace internal project for
+            long-term use.
+          </p>
         </section>
 
         <section id="view-settings" class="view">

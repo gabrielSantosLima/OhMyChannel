@@ -120,6 +120,8 @@ let playlistController = null;
 let thumbnailController = null;
 let introController = null;
 let renderController = null;
+let clientConfigStore = null;
+let clientSecretsUserPath = null;
 
 const activeUploads = new Map();
 const uploadQueue = [];
@@ -135,8 +137,9 @@ function buildContainer() {
   const settingsStore = new SettingsStore({
     filePath: path.join(app.getPath("userData"), "settings.json"),
   });
-  const clientConfigStore = new ClientConfigStore({
-    paths: [SECRETS_PATH, path.join(app.getPath("userData"), "client_secrets.json")],
+  clientSecretsUserPath = path.join(app.getPath("userData"), "client_secrets.json");
+  clientConfigStore = new ClientConfigStore({
+    paths: [SECRETS_PATH, clientSecretsUserPath],
   });
   const browser = new SystemBrowser({
     openExternal: (url) => shell.openExternal(url),
@@ -506,6 +509,33 @@ function registerIpc() {
     name: "OhMyChannel",
     version: app.getVersion(),
   }));
+
+  ipcMain.handle("config:info", () => ({
+    hasCredentials: clientConfigStore ? clientConfigStore.hasCredentials() : false,
+  }));
+
+  ipcMain.handle("config:importSecrets", async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: "Select client_secrets.json",
+      properties: ["openFile"],
+      filters: [{ name: "JSON", extensions: ["json"] }],
+    });
+    if (result.canceled || !result.filePaths.length) return { ok: false };
+    const source = result.filePaths[0];
+    try {
+      JSON.parse(fs.readFileSync(source, "utf8"));
+      fs.copyFileSync(source, clientSecretsUserPath);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle("app:openExternal", (_event, url) => {
+    if (typeof url === "string" && /^https?:\/\//i.test(url)) {
+      shell.openExternal(url);
+    }
+  });
 
   ipcMain.handle("settings:get", () => settingsController.get());
   ipcMain.handle("settings:save", async (_event, changes) => {

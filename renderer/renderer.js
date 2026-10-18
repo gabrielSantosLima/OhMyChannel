@@ -60,6 +60,11 @@ const els = {
   introPreviewPlaceholder: document.getElementById("introPreviewPlaceholder"),
   introPreviewBlack: document.getElementById("introPreviewBlack"),
   introList: document.getElementById("introList"),
+  credStatus: document.getElementById("credStatus"),
+  credImport: document.getElementById("credImport"),
+  credError: document.getElementById("credError"),
+  setupBanner: document.getElementById("setupBanner"),
+  setupBannerBtn: document.getElementById("setupBannerBtn"),
 };
 
 const items = [];
@@ -2565,6 +2570,56 @@ els.introReset.addEventListener("click", () => {
   hideIntroPreview();
 });
 
+/* ---------- Credentials / Setup ---------- */
+
+let hasCredentials = false;
+
+function setCredentialsStatus(configured) {
+  hasCredentials = configured;
+  if (els.credStatus) {
+    els.credStatus.textContent = configured
+      ? "Credentials configured."
+      : "Credentials not configured yet.";
+    els.credStatus.className = "cred-status " + (configured ? "on" : "off");
+  }
+  if (els.setupBanner) {
+    els.setupBanner.classList.toggle("hidden", configured);
+  }
+}
+
+async function loadConfigInfo() {
+  try {
+    const info = await window.api.getConfigInfo();
+    setCredentialsStatus(!!info.hasCredentials);
+  } catch {
+    setCredentialsStatus(false);
+  }
+}
+
+async function importCredentials() {
+  const result = await window.api.importCredentials();
+  if (!result || !result.ok) {
+    if (result && result.error) els.credError.textContent = result.error;
+    return;
+  }
+  els.credError.textContent = "";
+  setMessage("Credentials imported. You can sign in now.", "ok");
+  await loadConfigInfo();
+  await refreshAuth();
+}
+
+els.credImport.addEventListener("click", importCredentials);
+els.setupBannerBtn.addEventListener("click", () => showView("credentials"));
+
+document.addEventListener("click", (event) => {
+  const trigger = event.target.closest
+    ? event.target.closest("[data-url]")
+    : null;
+  if (!trigger) return;
+  event.preventDefault();
+  window.api.openExternal(trigger.dataset.url);
+});
+
 /* ---------- Auth ---------- */
 
 function setAuthUi(authenticated) {
@@ -2664,6 +2719,7 @@ async function init() {
   await loadThumbnailTemplates();
   resetEditor();
   await loadIntros();
+  await loadConfigInfo();
   await refreshAuth();
   await loadPlaylists();
   refreshQueueInfo();
