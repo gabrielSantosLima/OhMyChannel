@@ -5,10 +5,60 @@
  * progress states.
  */
 (() => {
-  let templates = [];
-  let thumbnailTemplates = [];
-  let intros = [];
   const copy = (item) => JSON.parse(JSON.stringify(item));
+  let templates = [
+    {
+      id: "tpl-gameplay",
+      name: "gameplay",
+      params: ["game", "episode"],
+      pattern: "{game} #{episode}",
+    },
+  ];
+  let thumbnailTemplates = [
+    {
+      id: "thumb-gameplay",
+      name: "Gameplay",
+      width: 1920,
+      height: 1080,
+      backgroundPath: null,
+      parameters: [],
+      elements: [
+        {
+          id: "el-1",
+          type: "text",
+          text: "GAMEPLAY",
+          x: 80,
+          y: 780,
+          width: 1760,
+          align: "left",
+          fontFamily: "BBH Hegarty",
+          fontWeight: 400,
+          fontSize: 260,
+          color: "#efe6d5",
+          lineHeight: 1.1,
+          letterSpacing: 0,
+          strokeColor: "#000000",
+          strokeWidth: 0,
+          shadowColor: "#000000",
+          shadowBlur: 12,
+          shadowX: 0,
+          shadowY: 8,
+        },
+      ],
+    },
+  ];
+  let intros = [
+    {
+      id: "intro-gameplay",
+      name: "Gameplay Intro",
+      path: "C:/demo/intro.mp4",
+      transition: {
+        video: { effect: "crossfade", fadeIn: 0, fadeOut: 0, duration: 1 },
+        audio: { effect: "crossfade", fadeIn: 0, fadeOut: 0, duration: 1 },
+      },
+      volume: 0.8,
+    },
+  ];
   const playlists = [
     { id: "pl-gameplay", title: "Gameplay", itemCount: 12 },
     { id: "pl-reviews", title: "Reviews", itemCount: 4 },
@@ -106,7 +156,8 @@
       { name: "BBH Hegarty", weights: [400] },
       { name: "Lato", weights: [400, 700] },
     ],
-    generateThumbnail: async () => "data:image/png;base64,iVBORw0KGgo=",
+    generateThumbnail: async () =>
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M8AAAMBAQDJ/pLvAAAAAElFTkSuQmCC",
     exportThumbnail: async () => null,
 
     listIntros: async () => intros.map(copy),

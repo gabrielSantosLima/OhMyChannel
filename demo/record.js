@@ -1,12 +1,11 @@
 /*
- * Records a demo of the real OhMyChannel renderer (renderer/index.html) with a
- * mocked window.api (see mock-api.js). No application code is modified.
+ * Short demo of the upload step only. Templates, thumbnail templates and intros
+ * are pre-seeded in mock-api.js (assumed to be configured already). No
+ * application code is modified.
  *
  *   cd demo && npm install && npm run record
  *
  * Output: demo/out/demo.webm plus demo.gif / demo.webp / demo.mp4
- *
- * The recording uses a smooth zoom that centers the element being acted on.
  */
 const path = require("path");
 const fs = require("fs");
@@ -75,17 +74,8 @@ function encode(webmPath) {
   await page.addInitScript({ path: path.join(__dirname, "mock-api.js") });
 
   const wait = (ms) => page.waitForTimeout(ms);
-  const slowType = (text, delay = 70) => page.keyboard.type(text, { delay });
-  const nav = async (view) => {
-    await page.click(`.nav-item[data-view="${view}"]`);
-    await wait(700);
-  };
+  const slowType = (text, delay = 65) => page.keyboard.type(text, { delay });
 
-  /*
-   * Smoothly zoom the app so the element is centered. Tracks the accumulated
-   * transform so repeated zooms stay correctly centered (measuring the element
-   * while the app is already transformed would otherwise be wrong).
-   */
   const zoom = async (selector, scale = 1.6) => {
     await page.evaluate(
       ({ selector, scale, viewport }) => {
@@ -119,107 +109,49 @@ function encode(webmPath) {
 
   await page.goto(RENDERER_URL);
   await page.waitForSelector("#view-uploads.active");
-  await wait(1200);
-
-  // Scene 1 — create an intro with transitions and volume
-  await nav("intros");
-  await zoom("#introName", 1.6);
-  await page.click("#introName");
-  await slowType("Gameplay Intro", 80);
-  await wait(500);
-
-  await page.click("#introFileBtn");
-  await wait(700);
-
-  await zoom(".intro-transitions", 1.5);
-  await page.selectOption("#introVideoEffect", "crossfade");
-  await wait(500);
-  await page.click("#introVideoDuration");
-  await page.keyboard.press("Control+A");
-  await slowType("1", 90);
-  await page.selectOption("#introAudioEffect", "crossfade");
-  await wait(500);
-  await page.click("#introAudioDuration");
-  await page.keyboard.press("Control+A");
-  await slowType("1", 90);
-  await wait(400);
-
-  await zoom(".intro-volume", 1.7);
-  await page.fill("#introVolume", "80");
-  await page.dispatchEvent("#introVolume", "input");
   await wait(900);
 
-  await zoom("#introPreviewBtn", 1.6);
-  await page.click("#introPreviewBtn");
-  await wait(2200);
-
-  await resetZoom();
-  await page.click("#introSave");
-  await wait(1200);
-
-  // Scene 2 — create a title template
-  await nav("templates");
-  await zoom(".tpl-form", 1.5);
-  await page.click("#tplName");
-  await slowType("gameplay", 80);
-  await page.click("#tplParams");
-  await slowType("game,episode", 70);
-  await page.click("#tplTitle");
-  await slowType("{game} #{episode}", 70);
-  await wait(600);
-  await page.click("#tplAdd");
-  await wait(1400);
-  await resetZoom();
-
-  // Scene 3 — upload a video using the template and the intro
-  await nav("uploads");
+  // Add a video to the queue
   await page.click("#addBtn");
   await page.waitForSelector(".upload-card");
   await wait(900);
 
+  // Title from the existing template (inline parameter chips)
   await zoom(".upload-card .cmd-field", 1.6);
   const titleField = page.locator(".upload-card .cmd-field").first();
   await titleField.click();
   await page.keyboard.press("Control+A");
   await page.keyboard.press("Delete");
   await wait(300);
-  await slowType("/template gameplay", 60);
-  await wait(700);
+  await slowType("/template gameplay", 55);
+  await wait(600);
   await page.keyboard.press("Tab");
-  await wait(700);
-  await slowType("Kingdom Come", 60);
+  await wait(600);
+  await slowType("Kingdom Come", 55);
   await page.keyboard.press("Tab");
-  await wait(400);
+  await wait(350);
   await slowType("12", 90);
-  await wait(1000);
+  await wait(900);
 
-  await zoom(".upload-card .card-options .opt:nth-child(5)", 1.5);
-  const introSelect = page
-    .locator('.upload-card .opt:has-text("Intro") select')
+  // Reference the existing thumbnail template
+  await zoom(".upload-card .card-options .opt:nth-child(4)", 1.7);
+  const thumbSelect = page
+    .locator('.upload-card .opt:has-text("Thumbnail template") select')
     .first();
-  await introSelect.selectOption({ label: "Gameplay Intro" });
-  await wait(1000);
-
-  // Render (Edit)
-  await zoom(".upload-card .card-actions button.primary", 1.8);
-  const action = page
-    .locator(".upload-card .card-actions button.primary")
-    .first();
-  await action.click();
+  await thumbSelect.selectOption({ label: "Gameplay" });
   await wait(1200);
 
-  await zoom(".upload-card", 1.4);
-  await wait(4200); // render: queued -> rendering -> done, then "Rendered"
-
-  // Upload to YouTube (manual confirmation)
+  // Upload with mocked progress
   await zoom(".upload-card .card-actions button.primary", 1.8);
-  await wait(600);
-  await action.click();
+  const upload = page
+    .locator(".upload-card .card-actions button.primary")
+    .first();
+  await upload.click();
   await zoom(".upload-card", 1.4);
-  await wait(4500); // mocked upload progress
+  await wait(4300);
 
   await resetZoom();
-  await wait(1600);
+  await wait(1800);
 
   const video = page.video();
   await context.close();
