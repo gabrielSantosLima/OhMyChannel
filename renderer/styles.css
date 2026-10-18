@@ -1242,3 +1242,7 @@ label {
   object-fit: contain;
   background: #000;
 }
+
+.intro-volume {
+  width: 90px;
+}

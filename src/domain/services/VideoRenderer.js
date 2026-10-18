@@ -31,19 +31,22 @@ class VideoRenderer {
     return { duration, fps, fpsRate, hasAudio, width: video && video.width };
   }
 
-  buildFilterGraph({ intro, main, width, height, transition }) {
+  buildFilterGraph({ intro, main, width, height, transition, volume }) {
     const scale =
       `scale=${width}:${height}:force_original_aspect_ratio=decrease,` +
       `pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1,` +
       `fps=${main.fpsRate}`;
     const audioFormat =
       "aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo";
+    const introVolume =
+      volume == null ? 1 : Math.min(2, Math.max(0, Number(volume)));
+    const volumeFilter = introVolume === 1 ? "" : `,volume=${introVolume}`;
 
     const filters = [
       `[0:v]${scale}[v0]`,
       `[1:v]${scale}[v1]`,
       intro.hasAudio
-        ? `[0:a]${audioFormat}[a0]`
+        ? `[0:a]${audioFormat}${volumeFilter}[a0]`
         : `anullsrc=r=48000:cl=stereo:d=${intro.duration}[a0]`,
       main.hasAudio
         ? `[1:a]${audioFormat}[a1]`
@@ -110,6 +113,7 @@ class VideoRenderer {
     width,
     height,
     outputPath,
+    volume,
     onProgress,
     registerAbort,
   }) {
@@ -121,6 +125,7 @@ class VideoRenderer {
       width,
       height,
       transition,
+      volume,
     });
 
     const args = [

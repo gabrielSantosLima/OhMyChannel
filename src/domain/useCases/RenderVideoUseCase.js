@@ -9,7 +9,7 @@ class RenderVideoUseCase {
     this.renders = new Map();
   }
 
-  async execute({ id, introPath, transition, videoPath, onProgress }) {
+  async execute({ id, introPath, transition, videoPath, volume, onProgress }) {
     const settings = this.settingsStore.load();
     const [width, height] = String(settings.renderResolution || "2560x1440")
       .split("x")
@@ -29,6 +29,7 @@ class RenderVideoUseCase {
         width,
         height,
         outputPath,
+        volume,
         onProgress,
         registerAbort: (abort) => this.renders.set(id, abort),
       });

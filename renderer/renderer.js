@@ -41,6 +41,7 @@ const els = {
   introName: document.getElementById("introName"),
   introFileBtn: document.getElementById("introFileBtn"),
   introFileName: document.getElementById("introFileName"),
+  introVolume: document.getElementById("introVolume"),
   introVideoEffect: document.getElementById("introVideoEffect"),
   introVideoFadeIn: document.getElementById("introVideoFadeIn"),
   introVideoFadeOut: document.getElementById("introVideoFadeOut"),
@@ -1350,6 +1351,7 @@ async function startRender(item) {
       id: item.id,
       introPath: intro.path,
       transition: intro.transition,
+      volume: intro.volume,
       videoPath: item.filePath,
     });
     item.renderedPath = result.path;
@@ -2312,6 +2314,7 @@ function fillIntroForm(intro) {
   els.introFileName.textContent = introPath
     ? introPath.split(/[\\/]/).pop()
     : "No video";
+  els.introVolume.value = intro && intro.volume != null ? intro.volume * 100 : 100;
 
   const transition =
     (intro && intro.transition) || DEFAULT_INTRO_TRANSITION;
@@ -2346,6 +2349,7 @@ async function saveIntro() {
     name,
     path: introPath,
     transition: readIntroTransition(),
+    volume: (Number(els.introVolume.value) || 0) / 100,
   };
   const index = intros.findIndex((item) => item.id === intro.id);
   if (index === -1) intros.push(intro);
@@ -2444,6 +2448,10 @@ function previewIntro() {
   const placeholder = els.introPreviewPlaceholder;
   const black = els.introPreviewBlack;
   const transition = readIntroTransition();
+  const baseVolume = Math.min(
+    1,
+    Math.max(0, Number(els.introVolume.value) / 100)
+  );
 
   clearIntroPreviewTimers();
   els.introPreview.classList.remove("hidden");
@@ -2453,7 +2461,7 @@ function previewIntro() {
   black.style.opacity = "0";
   placeholder.style.opacity = "1";
   video.style.opacity = "1";
-  video.volume = 1;
+  video.volume = baseVolume;
   video.src = toFileUrl(introPath);
 
   const onTime = () => {
@@ -2480,7 +2488,9 @@ function previewIntro() {
         audio.effect === "crossfade" ? audio.duration : audio.fadeOut;
       const start = duration - length;
       if (length > 0 && video.currentTime >= start) {
-        video.volume = Math.max(0, 1 - (video.currentTime - start) / length);
+        video.volume =
+          baseVolume *
+          Math.max(0, 1 - (video.currentTime - start) / length);
       }
     }
   };

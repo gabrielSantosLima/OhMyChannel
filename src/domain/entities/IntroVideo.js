@@ -6,14 +6,15 @@ const DEFAULT_TRANSITION = () => ({
 });
 
 class IntroVideo {
-  constructor({ id, name, path, transition }) {
+  constructor({ id, name, path, transition, volume }) {
     this.id = id;
     this.name = name;
     this.path = path;
     this.transition = transition;
+    this.volume = volume;
   }
 
-  static create({ id, name, path, transition }) {
+  static create({ id, name, path, transition, volume }) {
     const cleanName = String(name || "").trim();
     if (!cleanName) throw new Error("Intro name is required.");
     const cleanPath = String(path || "").trim();
@@ -24,7 +25,14 @@ class IntroVideo {
       name: cleanName,
       path: cleanPath,
       transition: IntroVideo.normalizeTransition(transition),
+      volume: IntroVideo.normalizeVolume(volume),
     });
+  }
+
+  static normalizeVolume(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return 1;
+    return Math.min(2, Math.max(0, number));
   }
 
   static normalizeTransition(transition = {}) {
