@@ -22,6 +22,12 @@ contextBridge.exposeInMainWorld("api", {
   listThumbnailFonts: () => ipcRenderer.invoke("thumbnails:fonts"),
   listIntros: () => ipcRenderer.invoke("intros:list"),
   saveIntros: (list) => ipcRenderer.invoke("intros:save", list),
+  renderVideo: (payload) => ipcRenderer.invoke("render:start", payload),
+  cancelRender: (id) => ipcRenderer.invoke("render:cancel", id),
+  onRenderProgress: (cb) =>
+    ipcRenderer.on("render:progress", (_event, data) => cb(data)),
+  onRenderState: (cb) =>
+    ipcRenderer.on("render:state", (_event, data) => cb(data)),
   exportThumbnail: (payload) =>
     ipcRenderer.invoke("thumbnails:export", payload),
   getSettings: () => ipcRenderer.invoke("settings:get"),

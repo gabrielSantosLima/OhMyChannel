@@ -71,12 +71,18 @@ const {
   SaveIntrosUseCase,
 } = require("./src/domain/useCases/SaveIntrosUseCase");
 const {
+  RenderVideoUseCase,
+} = require("./src/domain/useCases/RenderVideoUseCase");
+const {
   ThumbnailRenderer,
 } = require("./src/domain/services/ThumbnailRenderer");
 const {
   ThumbnailTemplateStore,
 } = require("./src/domain/services/ThumbnailTemplateStore");
 const { IntroStore } = require("./src/domain/services/IntroStore");
+const { VideoRenderer } = require("./src/domain/services/VideoRenderer");
+const ffmpegPath = require("ffmpeg-static");
+const ffprobePath = require("ffprobe-static").path;
 
 const { AuthController } = require("./src/controllers/AuthController");
 const { UploadController } = require("./src/controllers/UploadController");
@@ -91,6 +97,7 @@ const {
   ThumbnailController,
 } = require("./src/controllers/ThumbnailController");
 const { IntroController } = require("./src/controllers/IntroController");
+const { RenderController } = require("./src/controllers/RenderController");
 
 const SCOPES = [
   "https://www.googleapis.com/auth/youtube.upload",
@@ -112,6 +119,7 @@ let settingsController = null;
 let playlistController = null;
 let thumbnailController = null;
 let introController = null;
+let renderController = null;
 
 const activeUploads = new Map();
 const uploadQueue = [];
@@ -198,6 +206,15 @@ function buildContainer() {
   introController = new IntroController({
     listIntrosUseCase: new ListIntrosUseCase({ introStore }),
     saveIntrosUseCase: new SaveIntrosUseCase({ introStore }),
+  });
+
+  const videoRenderer = new VideoRenderer({ ffmpegPath, ffprobePath });
+  renderController = new RenderController({
+    renderVideoUseCase: new RenderVideoUseCase({
+      videoRenderer,
+      settingsStore,
+      outputDir: path.join(app.getPath("userData"), "renders"),
+    }),
   });
 }
 
@@ -407,6 +424,64 @@ function cancelUpload(id) {
   uploadController.cancel(id);
 }
 
+/* ---------- Render queue ---------- */
+
+const renderQueue = [];
+const runningRenders = new Set();
+
+function sendRenderState(job, status, extra = {}) {
+  const { event, id } = job;
+  if (event && event.sender && !event.sender.isDestroyed()) {
+    event.sender.send("render:state", { id, status, ...extra });
+  }
+}
+
+function processRenderQueue() {
+  const limit = currentSettings ? currentSettings.maxParallelRenders : 2;
+  while (runningRenders.size < limit && renderQueue.length > 0) {
+    runRender(renderQueue.shift());
+  }
+}
+
+function enqueueRender(event, payload) {
+  return new Promise((resolve, reject) => {
+    const job = { ...payload, event, resolve, reject };
+    renderQueue.push(job);
+    sendRenderState(job, "queued", { position: renderQueue.length });
+    processRenderQueue();
+  });
+}
+
+async function runRender(job) {
+  const { id, event, resolve, reject } = job;
+  runningRenders.add(id);
+  sendRenderState(job, "rendering");
+  try {
+    const data = await renderController.start(job, (rendered, total) => {
+      const percent = total ? Math.floor((rendered / total) * 100) : 0;
+      if (event && event.sender && !event.sender.isDestroyed()) {
+        event.sender.send("render:progress", { id, rendered, total, percent });
+      }
+    });
+    resolve(data);
+  } catch (err) {
+    reject(err);
+  } finally {
+    runningRenders.delete(id);
+    processRenderQueue();
+  }
+}
+
+function cancelRender(id) {
+  const index = renderQueue.findIndex((job) => job.id === id);
+  if (index !== -1) {
+    const [job] = renderQueue.splice(index, 1);
+    job.reject(new Error("Render canceled by user."));
+    return;
+  }
+  renderController.cancel(id);
+}
+
 /* ---------- IPC ---------- */
 
 function registerIpc() {
@@ -502,6 +577,14 @@ function registerIpc() {
 
   ipcMain.handle("upload:cancel", (_event, id) => {
     cancelUpload(id);
+  });
+
+  ipcMain.handle("render:start", (event, payload) =>
+    enqueueRender(event, payload)
+  );
+
+  ipcMain.handle("render:cancel", (_event, id) => {
+    cancelRender(id);
   });
 }
 
