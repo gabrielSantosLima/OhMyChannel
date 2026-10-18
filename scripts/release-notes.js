@@ -39,37 +39,44 @@ const version = pkg.version;
 const date = new Date().toISOString().slice(0, 10);
 
 const range = from ? `${from}..${to}` : to;
-let subjects = [];
+let entries = [];
 try {
-  subjects = git(`git log --no-merges --pretty=format:%s ${range}`)
+  entries = git(`git log --no-merges --pretty=format:%h%x09%s ${range}`)
     .split("\n")
-    .filter(Boolean);
+    .filter(Boolean)
+    .map((line) => {
+      const tab = line.indexOf("\t");
+      if (tab === -1) return { hash: "", subject: line };
+      return { hash: line.slice(0, tab), subject: line.slice(tab + 1) };
+    });
 } catch {
-  subjects = [];
+  entries = [];
 }
 
 const groups = { features: [], fixes: [], chores: [], other: [] };
-for (const subject of subjects) {
+for (const entry of entries) {
+  const subject = entry.subject;
   if (/^chore\(release\)/i.test(subject)) continue;
+  const ref = entry.hash ? ` [${entry.hash}]` : "";
   const match = subject.match(/^(\w+)(\([^)]*\))?!?:\s*(.+)$/);
   if (!match) {
-    groups.other.push(subject);
+    groups.other.push(`${subject}${ref}`);
     continue;
   }
   const type = match[1].toLowerCase();
   const text = match[3];
   if (type === "feat") {
-    groups.features.push(text);
+    groups.features.push(`${text}${ref}`);
   } else if (type === "fix") {
-    groups.fixes.push(text);
+    groups.fixes.push(`${text}${ref}`);
   } else if (
     ["refactor", "chore", "docs", "style", "perf", "test", "build", "ci"].includes(
       type
     )
   ) {
-    groups.chores.push(`${type}: ${text}`);
+    groups.chores.push(`${type}: ${text}${ref}`);
   } else {
-    groups.other.push(subject);
+    groups.other.push(`${subject}${ref}`);
   }
 }
 
