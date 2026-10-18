@@ -38,6 +38,8 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -107,3 +109,11 @@ jobs:
             --title "v$VERSION" \
             --notes-file NOTES.md \
             $PRERELEASE
+
+  build:
+    needs: release
+    permissions:
+      contents: write
+    uses: ./.github/workflows/build.yml
+    with:
+      tag: v${{ needs.release.outputs.version }}

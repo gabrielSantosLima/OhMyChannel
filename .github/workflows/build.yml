@@ -4,7 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag to attach the installers to (e.g. v0.0.1)"
+        description: "Release tag to build and attach the installers to (e.g. v0.0.1)"
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      tag:
+        description: "Release tag to build and attach the installers to"
         required: true
         type: string
 
@@ -26,6 +32,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.tag }}
           fetch-depth: 0
 
       - name: Setup Node
