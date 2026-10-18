@@ -1,7 +1,8 @@
 /*
- * Short demo of the upload step only. Templates, thumbnail templates and intros
- * are pre-seeded in mock-api.js (assumed to be configured already). No
- * application code is modified.
+ * Short demo focused on the upload step. Template, thumbnail template and intro
+ * are pre-seeded in mock-api.js (assumed already configured). The thumbnail
+ * template uses a background image (from Downloads/thumb.png by default) and an
+ * episode text, to demonstrate the thumbnail feature.
  *
  *   cd demo && npm install && npm run record
  *
@@ -9,6 +10,7 @@
  */
 const path = require("path");
 const fs = require("fs");
+const os = require("os");
 const { execFileSync } = require("child_process");
 const { chromium } = require("playwright");
 const ffmpegPath = require("ffmpeg-static");
@@ -19,6 +21,20 @@ const RENDERER_URL =
 const OUT_DIR = path.join(__dirname, "out");
 const VIDEO_DIR = path.join(OUT_DIR, "video");
 const VIEWPORT = { width: 1180, height: 780 };
+const THUMB_PATH =
+  process.env.THUMB_IMAGE || path.join(os.homedir(), "Downloads", "thumb.png");
+
+function readImageDataUrl(filePath) {
+  if (!filePath || !fs.existsSync(filePath)) return null;
+  const ext = path.extname(filePath).slice(1).toLowerCase();
+  const mime =
+    ext === "jpg" || ext === "jpeg"
+      ? "image/jpeg"
+      : ext === "webp"
+      ? "image/webp"
+      : "image/png";
+  return `data:${mime};base64,${fs.readFileSync(filePath).toString("base64")}`;
+}
 
 function encode(webmPath) {
   const gif = path.join(OUT_DIR, "demo.gif");
@@ -36,16 +52,7 @@ function encode(webmPath) {
     "0",
     gif,
   ]);
-  execFileSync(ffmpegPath, [
-    "-y",
-    "-i",
-    webmPath,
-    "-vf",
-    scale,
-    "-loop",
-    "0",
-    webp,
-  ]);
+  execFileSync(ffmpegPath, ["-y", "-i", webmPath, "-vf", scale, "-loop", "0", webp]);
   execFileSync(ffmpegPath, [
     "-y",
     "-i",
@@ -71,14 +78,26 @@ function encode(webmPath) {
     recordVideo: { dir: VIDEO_DIR, size: VIEWPORT },
   });
   const page = await context.newPage();
+
+  const thumbDataUrl = readImageDataUrl(THUMB_PATH);
+  if (thumbDataUrl) {
+    await page.addInitScript((dataUrl) => {
+      window.__thumbImage = dataUrl;
+    }, thumbDataUrl);
+  }
   await page.addInitScript({ path: path.join(__dirname, "mock-api.js") });
 
   const wait = (ms) => page.waitForTimeout(ms);
   const slowType = (text, delay = 65) => page.keyboard.type(text, { delay });
 
-  const zoom = async (selector, scale = 1.6) => {
+  /*
+   * Smoothly zoom so the element is fully visible (fitted inside the viewport)
+   * and centered. Tracks the accumulated transform so repeated zooms stay
+   * correct.
+   */
+  const zoom = async (selector, maxScale = 1.8) => {
     await page.evaluate(
-      ({ selector, scale, viewport }) => {
+      ({ selector, maxScale, viewport }) => {
         const app = document.querySelector(".app");
         if (!app) return;
         app.style.transition = "transform 0.8s cubic-bezier(0.33, 1, 0.68, 1)";
@@ -94,12 +113,20 @@ function encode(webmPath) {
         const rect = target.getBoundingClientRect();
         const layoutCx = (rect.left + rect.width / 2 - current.tx) / current.s;
         const layoutCy = (rect.top + rect.height / 2 - current.ty) / current.s;
+        const layoutW = rect.width / current.s;
+        const layoutH = rect.height / current.s;
+        const pad = 70;
+        const fit = Math.min(
+          (viewport.width - pad * 2) / layoutW,
+          (viewport.height - pad * 2) / layoutH
+        );
+        const scale = Math.min(maxScale, Math.max(1, fit));
         const tx = viewport.width / 2 - layoutCx * scale;
         const ty = viewport.height / 2 - layoutCy * scale;
         app.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
         window.__zoom = { tx, ty, s: scale };
       },
-      { selector, scale, viewport: VIEWPORT }
+      { selector, maxScale, viewport: VIEWPORT }
     );
     await wait(900);
   };
@@ -109,15 +136,15 @@ function encode(webmPath) {
 
   await page.goto(RENDERER_URL);
   await page.waitForSelector("#view-uploads.active");
-  await wait(900);
+  await wait(1200);
 
-  // Add a video to the queue
+  // Add a video to the queue (already on the uploads screen)
   await page.click("#addBtn");
   await page.waitForSelector(".upload-card");
   await wait(900);
 
   // Title from the existing template (inline parameter chips)
-  await zoom(".upload-card .cmd-field", 1.6);
+  await zoom(".upload-card .cmd-field");
   const titleField = page.locator(".upload-card .cmd-field").first();
   await titleField.click();
   await page.keyboard.press("Control+A");
@@ -133,25 +160,34 @@ function encode(webmPath) {
   await slowType("12", 90);
   await wait(900);
 
-  // Reference the existing thumbnail template
-  await zoom(".upload-card .card-options .opt:nth-child(4)", 1.7);
+  // Reference the existing thumbnail template (background + episode text)
+  await zoom(".upload-card .card-options .opt:nth-child(4)");
   const thumbSelect = page
     .locator('.upload-card .opt:has-text("Thumbnail template") select')
     .first();
-  await thumbSelect.selectOption({ label: "Gameplay" });
+  await thumbSelect.selectOption({ label: "Kingdom Come" });
   await wait(1200);
 
-  // Upload with mocked progress
-  await zoom(".upload-card .card-actions button.primary", 1.8);
+  // Episode value for the thumbnail
+  await zoom(".upload-card .card-thumb-values");
+  const episodeInput = page
+    .locator(".upload-card .card-thumb-values input")
+    .first();
+  await episodeInput.click();
+  await page.keyboard.press("Control+A");
+  await slowType("12", 90);
+  await wait(1400);
+
+  // Upload — return to the full app view for the progress
+  await zoom(".upload-card .card-actions button.primary");
   const upload = page
     .locator(".upload-card .card-actions button.primary")
     .first();
   await upload.click();
-  await zoom(".upload-card", 1.4);
-  await wait(4300);
-
   await resetZoom();
-  await wait(1800);
+  await wait(4800);
+
+  await wait(1200);
 
   const video = page.video();
   await context.close();

@@ -16,33 +16,33 @@
   ];
   let thumbnailTemplates = [
     {
-      id: "thumb-gameplay",
-      name: "Gameplay",
+      id: "thumb-kingdom",
+      name: "Kingdom Come",
       width: 1920,
       height: 1080,
-      backgroundPath: null,
-      parameters: [],
+      backgroundPath: "background.png",
+      parameters: [{ key: "episode", mode: "dynamic", value: "12" }],
       elements: [
         {
           id: "el-1",
           type: "text",
-          text: "GAMEPLAY",
-          x: 80,
-          y: 780,
-          width: 1760,
+          text: "{episode}",
+          x: 90,
+          y: 700,
+          width: 1740,
           align: "left",
           fontFamily: "BBH Hegarty",
           fontWeight: 400,
-          fontSize: 260,
+          fontSize: 340,
           color: "#efe6d5",
           lineHeight: 1.1,
           letterSpacing: 0,
           strokeColor: "#000000",
           strokeWidth: 0,
           shadowColor: "#000000",
-          shadowBlur: 12,
+          shadowBlur: 16,
           shadowX: 0,
-          shadowY: 8,
+          shadowY: 10,
         },
       ],
     },
@@ -85,6 +85,67 @@
   };
 
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  const loadImage = (src) =>
+    new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+
+  // Lightweight thumbnail composition so the demo shows a real composed image
+  // (background + text) without Electron/satori.
+  const composeThumbnail = async (template, values) => {
+    const W = template.width || 1920;
+    const H = template.height || 1080;
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, W, H);
+
+    if (template.backgroundPath && window.__thumbImage) {
+      try {
+        const img = await loadImage(window.__thumbImage);
+        const s = Math.max(W / img.width, H / img.height);
+        const dw = img.width * s;
+        const dh = img.height * s;
+        ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+      } catch {
+        /* keep black background */
+      }
+    }
+
+    const merged = { ...(values || {}) };
+    (template.parameters || []).forEach((param) => {
+      if (param.mode === "static") merged[param.key] = param.value;
+      else if (merged[param.key] == null) merged[param.key] = param.value || "";
+    });
+
+    (template.elements || []).forEach((element) => {
+      if (element.type !== "text") return;
+      const text = String(element.text || "").replace(
+        /\{(\w+)\}/g,
+        (_match, key) => (merged[key] != null ? merged[key] : "")
+      );
+      if (!text) return;
+      ctx.font = `${element.fontWeight || 400} ${element.fontSize || 96}px "${
+        element.fontFamily || "sans-serif"
+      }", sans-serif`;
+      ctx.fillStyle = element.color || "#ffffff";
+      ctx.textBaseline = "top";
+      ctx.textAlign = element.align || "left";
+      const width = element.width || W;
+      let x = element.x || 0;
+      if (element.align === "center") x += width / 2;
+      else if (element.align === "right") x += width;
+      ctx.fillText(text, x, element.y || 0);
+    });
+
+    return canvas.toDataURL("image/png");
+  };
 
   window.api = {
     getAppInfo: async () => ({ name: "OhMyChannel", version: "0.0.1" }),
@@ -156,8 +217,8 @@
       { name: "BBH Hegarty", weights: [400] },
       { name: "Lato", weights: [400, 700] },
     ],
-    generateThumbnail: async () =>
-      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M8AAAMBAQDJ/pLvAAAAAElFTkSuQmCC",
+    generateThumbnail: async ({ template, values }) =>
+      composeThumbnail(template, values),
     exportThumbnail: async () => null,
 
     listIntros: async () => intros.map(copy),
