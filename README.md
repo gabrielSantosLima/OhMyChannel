@@ -93,6 +93,17 @@ To generate release notes locally:
 node scripts/release-notes.js
 ```
 
+### Building installers
+
+The **Build** GitHub Action (`.github/workflows/build.yml`, manual
+`workflow_dispatch`) builds the installers on a matrix (Windows + Linux) and
+attaches them to an existing release. Provide the release tag (e.g. `v0.0.1`).
+Targets: Windows (`nsis`, `portable`) and Linux (`AppImage`, `deb`).
+
+Locally you can run `npm run dist:win` or `npm run dist:linux` on the matching
+operating system. Credentials are never bundled: `client_secrets.json` and
+`token.json` are excluded from the package.
+
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file
