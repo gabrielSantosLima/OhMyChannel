@@ -93,14 +93,15 @@ function encode(webmPath) {
   /*
    * Smoothly zoom so the element is fully visible (fitted inside the viewport)
    * and centered. Tracks the accumulated transform so repeated zooms stay
-   * correct.
+   * correct. No scrolling is performed (the target is always on screen here),
+   * which keeps transitions between elements smooth.
    */
   const zoom = async (selector, maxScale = 1.8) => {
     await page.evaluate(
       ({ selector, maxScale, viewport }) => {
         const app = document.querySelector(".app");
         if (!app) return;
-        app.style.transition = "transform 0.8s cubic-bezier(0.33, 1, 0.68, 1)";
+        app.style.transition = "transform 1.1s cubic-bezier(0.4, 0, 0.2, 1)";
         app.style.transformOrigin = "0 0";
         const current = window.__zoom || { tx: 0, ty: 0, s: 1 };
         const target = selector ? document.querySelector(selector) : null;
@@ -109,7 +110,6 @@ function encode(webmPath) {
           window.__zoom = { tx: 0, ty: 0, s: 1 };
           return;
         }
-        target.scrollIntoView({ block: "center", inline: "nearest" });
         const rect = target.getBoundingClientRect();
         const layoutCx = (rect.left + rect.width / 2 - current.tx) / current.s;
         const layoutCy = (rect.top + rect.height / 2 - current.ty) / current.s;
@@ -128,7 +128,7 @@ function encode(webmPath) {
       },
       { selector, maxScale, viewport: VIEWPORT }
     );
-    await wait(900);
+    await wait(1250);
   };
   const resetZoom = () => zoom(null, 1);
 
