@@ -751,6 +751,11 @@ label {
   max-width: 360px;
 }
 
+.thumb-toolbar button {
+  padding: 10px 16px;
+  font-size: 14px;
+}
+
 .thumb-workspace {
   display: flex;
   gap: 16px;
