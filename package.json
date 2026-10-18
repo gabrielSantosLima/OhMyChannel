@@ -1,6 +1,6 @@
 {
   "name": "oh-my-channel",
-  "version": "0.0.1-alpha",
+  "version": "0.0.1",
   "description": "App desktop (Electron) para pre-upload de videos no YouTube",
   "main": "main.js",
   "scripts": {
