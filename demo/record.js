@@ -178,13 +178,13 @@ function encode(webmPath) {
   await slowType("12", 90);
   await wait(1400);
 
-  // Upload — return to the full app view for the progress
-  await zoom(".upload-card .card-actions button.primary");
+  // Zoom out to the full app, then upload
+  await resetZoom();
+  await wait(600);
   const upload = page
     .locator(".upload-card .card-actions button.primary")
     .first();
   await upload.click();
-  await resetZoom();
   await wait(4800);
 
   await wait(1200);
