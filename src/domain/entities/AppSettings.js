@@ -1,5 +1,6 @@
 const THEMES = ["dark", "light"];
 const RESOLUTIONS = ["1920x1080", "2560x1440", "3840x2160"];
+const LANGUAGES = ["en", "pt-BR"];
 const DEFAULTS = {
   theme: "dark",
   background: true,
@@ -11,6 +12,7 @@ const DEFAULTS = {
   autoCheckUpdates: true,
   autoDownloadUpdates: true,
   allowPrerelease: false,
+  language: "en",
 };
 const MIN_PARALLEL = 1;
 const MAX_PARALLEL = 10;
@@ -27,6 +29,7 @@ class AppSettings {
     autoCheckUpdates,
     autoDownloadUpdates,
     allowPrerelease,
+    language,
   }) {
     this.theme = theme;
     this.background = background;
@@ -38,6 +41,7 @@ class AppSettings {
     this.autoCheckUpdates = autoCheckUpdates;
     this.autoDownloadUpdates = autoDownloadUpdates;
     this.allowPrerelease = allowPrerelease;
+    this.language = language;
   }
 
   static from(input = {}) {
@@ -80,6 +84,9 @@ class AppSettings {
         DEFAULTS.autoDownloadUpdates
       ),
       allowPrerelease: bool(input.allowPrerelease, DEFAULTS.allowPrerelease),
+      language: LANGUAGES.includes(input.language)
+        ? input.language
+        : DEFAULTS.language,
     });
   }
 
@@ -90,6 +97,7 @@ class AppSettings {
 
 AppSettings.THEMES = THEMES;
 AppSettings.RESOLUTIONS = RESOLUTIONS;
+AppSettings.LANGUAGES = LANGUAGES;
 AppSettings.DEFAULTS = DEFAULTS;
 
 module.exports = { AppSettings };

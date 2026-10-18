@@ -22,6 +22,7 @@ const els = {
     "autoDownloadUpdatesToggle"
   ),
   allowPrereleaseToggle: document.getElementById("allowPrereleaseToggle"),
+  languageSelect: document.getElementById("languageSelect"),
   collapseBtn: document.getElementById("collapseBtn"),
   tplName: document.getElementById("tplName"),
   tplParams: document.getElementById("tplParams"),
@@ -77,6 +78,8 @@ const els = {
   updateProgress: document.getElementById("updateProgress"),
   updatePopover: document.getElementById("updatePopover"),
 };
+
+const t = (key, params) => window.i18n.t(key, params);
 
 const items = [];
 const itemById = new Map();
@@ -163,6 +166,7 @@ function renderSettingsForm() {
   els.autoCheckUpdatesToggle.checked = !!settings.autoCheckUpdates;
   els.autoDownloadUpdatesToggle.checked = !!settings.autoDownloadUpdates;
   els.allowPrereleaseToggle.checked = !!settings.allowPrerelease;
+  els.languageSelect.value = settings.language || "en";
   els.app.classList.toggle("collapsed", !!settings.sidebarCollapsed);
 }
 
@@ -209,6 +213,11 @@ els.autoDownloadUpdatesToggle.addEventListener("change", () =>
 els.allowPrereleaseToggle.addEventListener("change", () =>
   persistSettings({ allowPrerelease: els.allowPrereleaseToggle.checked })
 );
+
+els.languageSelect.addEventListener("change", async () => {
+  await persistSettings({ language: els.languageSelect.value });
+  window.location.reload();
+});
 
 els.collapseBtn.addEventListener("click", () =>
   persistSettings({ sidebarCollapsed: !settings.sidebarCollapsed })
@@ -324,7 +333,7 @@ function fillPlaylistSelect(select) {
   select.innerHTML = "";
   const none = document.createElement("option");
   none.value = "";
-  none.textContent = "No playlist";
+  none.textContent = t("item.playlistNone");
   select.appendChild(none);
   playlists.forEach((playlist) => {
     const option = document.createElement("option");
@@ -354,7 +363,7 @@ function fillThumbTemplateSelect(select) {
   select.innerHTML = "";
   const none = document.createElement("option");
   none.value = "";
-  none.textContent = "None";
+  none.textContent = t("common.none");
   select.appendChild(none);
   thumbnailTemplates.forEach((tpl) => {
     const option = document.createElement("option");
@@ -372,7 +381,7 @@ function fillIntroSelect(select) {
   select.innerHTML = "";
   const none = document.createElement("option");
   none.value = "";
-  none.textContent = "None";
+  none.textContent = t("common.none");
   select.appendChild(none);
   intros.forEach((intro) => {
     const option = document.createElement("option");
@@ -706,7 +715,7 @@ function createCommandField({ input, menu, preview, onChange }) {
     if (tokens.length === 1) {
       const query = command.slice(1).toLowerCase();
       const commands = [
-        { name: "template", hint: "Insert a template" },
+        { name: "template", hint: t("command.templateHint") },
       ].filter((c) => c.name.startsWith(query));
       showMenu(
         commands.map((c) => ({
@@ -903,21 +912,21 @@ function createCommandField({ input, menu, preview, onChange }) {
 function statusText(item) {
   switch (item.status) {
     case "queued":
-      return "Queued";
+      return t("status.queued");
     case "rendering":
-      return `Rendering ${item.percent}%`;
+      return t("status.rendering", { percent: item.percent });
     case "rendered":
-      return "Rendered";
+      return t("status.rendered");
     case "uploading":
-      return `Uploading ${item.percent}%`;
+      return t("status.uploading", { percent: item.percent });
     case "done":
-      return "Done";
+      return t("status.done");
     case "error":
-      return "Error";
+      return t("status.error");
     case "canceled":
-      return "Canceled";
+      return t("status.canceled");
     default:
-      return "Pending";
+      return t("status.pending");
   }
 }
 
@@ -933,9 +942,9 @@ function updateItemCounters(item) {
 }
 
 function uploadButtonLabel(item) {
-  if (item.renderedPath) return "Upload";
-  if (item.dom.intro && item.dom.intro.value) return "Edit";
-  return "Upload";
+  if (item.renderedPath) return t("common.upload");
+  if (item.dom.intro && item.dom.intro.value) return t("common.edit");
+  return t("common.upload");
 }
 
 function refreshItem(item) {
@@ -997,7 +1006,7 @@ function addItem(filePath) {
   file.title = filePath;
   const status = document.createElement("span");
   status.className = "card-status pending";
-  status.textContent = "Pending";
+  status.textContent = t("status.pending");
   head.appendChild(file);
   head.appendChild(status);
 
@@ -1005,7 +1014,7 @@ function addItem(filePath) {
   titleInput.className = "cmd-field";
   titleInput.contentEditable = "true";
   titleInput.setAttribute("spellcheck", "false");
-  titleInput.dataset.placeholder = "Video title or /template ...";
+  titleInput.dataset.placeholder = t("item.titlePlaceholder");
   titleInput.dataset.max = "200";
   titleInput.textContent = fileName.replace(/\.[^.]+$/, "");
   const titleCount = document.createElement("span");
@@ -1017,14 +1026,14 @@ function addItem(filePath) {
   const titleField = document.createElement("div");
   titleField.className = "field";
   const titleLabel = document.createElement("label");
-  titleLabel.textContent = "Title";
+  titleLabel.textContent = t("item.title");
   titleField.append(titleLabel, titleInput, titleCount, titleMenu, titlePreview);
 
   const descInput = document.createElement("div");
   descInput.className = "cmd-field";
   descInput.contentEditable = "true";
   descInput.setAttribute("spellcheck", "false");
-  descInput.dataset.placeholder = "Video description or /template ...";
+  descInput.dataset.placeholder = t("item.descriptionPlaceholder");
   descInput.dataset.max = "5000";
   descInput.dataset.multiline = "true";
   const descCount = document.createElement("span");
@@ -1036,7 +1045,7 @@ function addItem(filePath) {
   const descField = document.createElement("div");
   descField.className = "field";
   const descLabel = document.createElement("label");
-  descLabel.textContent = "Description";
+  descLabel.textContent = t("item.description");
   descField.append(descLabel, descInput, descCount, descMenu, descPreview);
 
   const options = document.createElement("div");
@@ -1044,7 +1053,7 @@ function addItem(filePath) {
   const playlistField = document.createElement("div");
   playlistField.className = "opt";
   const playlistLabel = document.createElement("label");
-  playlistLabel.textContent = "Playlist";
+  playlistLabel.textContent = t("item.playlist");
   const playlistSelect = document.createElement("select");
   playlistSelect.className = "opt-select";
   fillPlaylistSelect(playlistSelect);
@@ -1054,7 +1063,7 @@ function addItem(filePath) {
   const publishField = document.createElement("div");
   publishField.className = "opt";
   const publishLabel = document.createElement("label");
-  publishLabel.textContent = "Publish at";
+  publishLabel.textContent = t("item.publishAt");
   const publishInput = document.createElement("input");
   publishInput.type = "datetime-local";
   publishField.append(publishLabel, publishInput);
@@ -1063,19 +1072,19 @@ function addItem(filePath) {
   const thumbField = document.createElement("div");
   thumbField.className = "opt thumb-opt";
   const thumbLabel = document.createElement("label");
-  thumbLabel.textContent = "Thumbnail";
+  thumbLabel.textContent = t("item.thumbnail");
   const thumbRow = document.createElement("div");
   thumbRow.className = "thumb-row";
   const thumbButton = document.createElement("button");
   thumbButton.type = "button";
-  thumbButton.textContent = "Choose image";
+  thumbButton.textContent = t("common.chooseImage");
   const thumbName = document.createElement("span");
   thumbName.className = "thumb-name";
-  thumbName.textContent = "No image";
+  thumbName.textContent = t("item.noImage");
   const thumbClear = document.createElement("button");
   thumbClear.type = "button";
   thumbClear.className = "ghost hidden";
-  thumbClear.textContent = "Remove";
+  thumbClear.textContent = t("common.remove");
   thumbRow.append(thumbButton, thumbName, thumbClear);
   thumbField.append(thumbLabel, thumbRow);
   options.appendChild(thumbField);
@@ -1083,7 +1092,7 @@ function addItem(filePath) {
   const tplField = document.createElement("div");
   tplField.className = "opt";
   const tplLabel = document.createElement("label");
-  tplLabel.textContent = "Thumbnail template";
+  tplLabel.textContent = t("item.thumbnailTemplate");
   const tplSelect = document.createElement("select");
   tplSelect.className = "opt-select";
   fillThumbTemplateSelect(tplSelect);
@@ -1093,7 +1102,7 @@ function addItem(filePath) {
   tplValues.className = "thumb-values card-thumb-values hidden";
   const tplPreview = document.createElement("img");
   tplPreview.className = "card-thumb-preview hidden";
-  tplPreview.alt = "Thumbnail preview";
+  tplPreview.alt = t("item.thumbnail");
   tplField.append(
     tplLabel,
     tplSelect,
@@ -1107,7 +1116,7 @@ function addItem(filePath) {
   const introField = document.createElement("div");
   introField.className = "opt";
   const introLabel = document.createElement("label");
-  introLabel.textContent = "Intro";
+  introLabel.textContent = t("item.intro");
   const introSelect = document.createElement("select");
   introSelect.className = "opt-select";
   fillIntroSelect(introSelect);
@@ -1122,12 +1131,12 @@ function addItem(filePath) {
   actions.className = "card-actions";
   const upload = document.createElement("button");
   upload.className = "primary";
-  upload.textContent = "Upload";
+  upload.textContent = t("common.upload");
   const cancel = document.createElement("button");
   cancel.className = "hidden";
-  cancel.textContent = "Cancel";
+  cancel.textContent = t("common.cancel");
   const remove = document.createElement("button");
-  remove.textContent = "Remove";
+  remove.textContent = t("common.remove");
   const progress = document.createElement("div");
   progress.className = "progress hidden";
   const bar = document.createElement("div");
@@ -1238,7 +1247,7 @@ function addItem(filePath) {
     if (path && isImageFile(path)) {
       applyThumbnail(item, path);
     } else {
-      setMessage("Drop a JPG, PNG or WEBP image as the thumbnail.", "error");
+      setMessage(t("msg.dropImage"), "error");
     }
   });
 
@@ -1256,7 +1265,7 @@ async function addFiles() {
   if (!files || files.length === 0) return;
   files.forEach(addItem);
   setMessage(
-    files.length === 1 ? "1 video added." : `${files.length} videos added.`,
+    files.length === 1 ? t("msg.videosAddedOne") : t("msg.videosAdded", { count: files.length }),
     ""
   );
 }
@@ -1294,14 +1303,14 @@ function handleDrop(event) {
 
   if (!paths.length) {
     if (!files.some((file) => isImageFile(getDroppedPath(file)))) {
-      setMessage("No supported video files were dropped.", "error");
+      setMessage(t("msg.noVideoFiles"), "error");
     }
     return;
   }
 
   paths.forEach(addItem);
   setMessage(
-    paths.length === 1 ? "1 video added." : `${paths.length} videos added.`,
+    paths.length === 1 ? t("msg.videosAddedOne") : t("msg.videosAdded", { count: paths.length }),
     ""
   );
 }
@@ -1396,7 +1405,7 @@ async function startRender(item) {
       await startUpload(item);
     } else {
       setMessage(
-        `"${item.fileName}" rendered. Click Upload to submit.`,
+        t("msg.rendered", { name: item.fileName }),
         "ok"
       );
     }
@@ -1405,7 +1414,7 @@ async function startRender(item) {
       item.status = "canceled";
     } else {
       item.status = "error";
-      setMessage("Render error: " + err.message, "error");
+      setMessage(t("msg.renderError", { message: err.message }), "error");
     }
     refreshItem(item);
     refreshQueueInfo();
@@ -1417,7 +1426,7 @@ async function startUpload(item) {
 
   const title = serializeField(item.dom.title).slice(0, 100);
   if (!title.trim()) {
-    setMessage("Every upload needs a title.", "error");
+    setMessage(t("msg.needsTitle"), "error");
     return;
   }
 
@@ -1436,7 +1445,7 @@ async function startUpload(item) {
         });
         thumbnailPath = generated.path;
       } catch (err) {
-        setMessage("Thumbnail generation failed: " + err.message, "error");
+        setMessage(t("msg.thumbnailGenFailed", { message: err.message }), "error");
         return;
       }
     }
@@ -1468,7 +1477,7 @@ async function startUpload(item) {
       ? " - " + result.warnings.join("; ")
       : "";
     setMessage(
-      `Uploaded "${title}" - https://youtu.be/${result.id}${warnings}`,
+      t("msg.uploaded", { title, url: `https://youtu.be/${result.id}`, warnings }),
       result.warnings && result.warnings.length ? "error" : "ok"
     );
   } catch (err) {
@@ -1476,7 +1485,7 @@ async function startUpload(item) {
       item.status = "canceled";
     } else {
       item.status = "error";
-      setMessage("Upload error: " + err.message, "error");
+      setMessage(t("msg.uploadError", { message: err.message }), "error");
     }
   } finally {
     refreshItem(item);
@@ -1507,7 +1516,7 @@ function uploadAll() {
   );
   pending.forEach(handleItemAction);
   if (pending.length) {
-    setMessage(`Starting ${pending.length} upload(s)...`, "");
+    setMessage(t("msg.startingUploads", { count: pending.length }), "");
   }
 }
 
@@ -1521,7 +1530,7 @@ function renderTemplateList() {
   if (templates.length === 0) {
     const empty = document.createElement("div");
     empty.className = "tpl-empty";
-    empty.textContent = "No templates yet.";
+    empty.textContent = t("templates.empty");
     els.tplList.appendChild(empty);
     return;
   }
@@ -1537,13 +1546,13 @@ function renderTemplateList() {
     const detail = document.createElement("span");
     detail.className = "tpl-detail";
     detail.textContent =
-      tpl.pattern + (tpl.params.length ? " | params: " + tpl.params.join(", ") : "");
+      tpl.pattern + (tpl.params.length ? " | " + t("templates.detailParams") + ": " + tpl.params.join(", ") : "");
     info.appendChild(name);
     info.appendChild(detail);
 
     const del = document.createElement("button");
     del.className = "danger";
-    del.textContent = "Delete";
+    del.textContent = t("common.delete");
     del.addEventListener("click", async () => {
       templates = templates.filter((t) => t.id !== tpl.id);
       await persistTemplates();
@@ -1564,14 +1573,14 @@ async function addTemplate() {
     .filter(Boolean);
   const pattern = els.tplTitle.value.trim();
 
-  if (!name) return (els.tplError.textContent = "Enter the template name.");
+  if (!name) return (els.tplError.textContent = t("templates.errorName"));
   if (findTemplate(name))
     return (els.tplError.textContent =
-      "A template with this name already exists.");
-  if (!pattern) return (els.tplError.textContent = "Enter the pattern.");
+      t("templates.errorExists"));
+  if (!pattern) return (els.tplError.textContent = t("templates.errorPattern"));
   for (const param of params) {
     if (!pattern.includes("{" + param + "}")) {
-      return (els.tplError.textContent = `The pattern does not use parameter {${param}}.`);
+      return (els.tplError.textContent = t("templates.errorParam", { param }));
     }
   }
 
@@ -1806,7 +1815,7 @@ function renderProps() {
   if (!element) {
     const hint = document.createElement("span");
     hint.className = "muted";
-    hint.textContent = "Select an element";
+    hint.textContent = t("thumbnails.selectElement");
     panel.appendChild(hint);
     return;
   }
@@ -1814,7 +1823,7 @@ function renderProps() {
   const title = document.createElement("div");
   title.className = "thumb-props-title";
   title.textContent =
-    element.type === "image" ? "Image element" : "Text element";
+    element.type === "image" ? t("thumbnails.imageElement") : t("thumbnails.textElement");
   panel.appendChild(title);
 
   const grid = document.createElement("div");
@@ -1822,31 +1831,31 @@ function renderProps() {
 
   const x = numberInput(element.x);
   bindProp(x, element, "x", { numeric: true });
-  grid.appendChild(thumbField("X", x));
+  grid.appendChild(thumbField(t("thumbnails.field.x"), x));
 
   const y = numberInput(element.y);
   bindProp(y, element, "y", { numeric: true });
-  grid.appendChild(thumbField("Y", y));
+  grid.appendChild(thumbField(t("thumbnails.field.y"), y));
 
   const width = numberInput(element.width);
   bindProp(width, element, "width", { numeric: true });
-  grid.appendChild(thumbField("Width", width));
+  grid.appendChild(thumbField(t("thumbnails.field.width"), width));
 
   if (element.type === "image") {
     const height = numberInput(element.height);
     bindProp(height, element, "height", { numeric: true });
-    grid.appendChild(thumbField("Height", height));
+    grid.appendChild(thumbField(t("thumbnails.field.height"), height));
 
     const opacity = numberInput(element.opacity);
     bindProp(opacity, element, "opacity", { numeric: true });
-    grid.appendChild(thumbField("Opacity", opacity));
+    grid.appendChild(thumbField(t("thumbnails.field.opacity"), opacity));
     panel.appendChild(grid);
 
     const row = document.createElement("div");
     row.className = "thumb-row";
     const choose = document.createElement("button");
     choose.type = "button";
-    choose.textContent = "Choose image";
+    choose.textContent = t("common.chooseImage");
     choose.addEventListener("click", async () => {
       const path = await window.api.pickThumbnail();
       if (path) {
@@ -1861,22 +1870,22 @@ function renderProps() {
 
   const lineHeight = numberInput(element.lineHeight);
   bindProp(lineHeight, element, "lineHeight", { numeric: true });
-  grid.appendChild(thumbField("Line height", lineHeight));
+  grid.appendChild(thumbField(t("thumbnails.field.lineHeight"), lineHeight));
 
   const spacing = numberInput(element.letterSpacing);
   bindProp(spacing, element, "letterSpacing", { numeric: true });
-  grid.appendChild(thumbField("Spacing", spacing));
+  grid.appendChild(thumbField(t("thumbnails.field.spacing"), spacing));
 
   const weight = selectInput(
     [100, 200, 300, 400, 500, 600, 700, 800, 900],
     element.fontWeight
   );
   bindProp(weight, element, "fontWeight", { numeric: true, event: "change" });
-  grid.appendChild(thumbField("Weight", weight));
+  grid.appendChild(thumbField(t("thumbnails.field.weight"), weight));
 
   const align = selectInput(["left", "center", "right"], element.align);
   bindProp(align, element, "align", { event: "change" });
-  grid.appendChild(thumbField("Align", align));
+  grid.appendChild(thumbField(t("thumbnails.field.align"), align));
 
   panel.appendChild(grid);
 
@@ -1889,28 +1898,28 @@ function renderProps() {
   });
   font.value = element.fontFamily;
   bindProp(font, element, "fontFamily", { event: "change" });
-  panel.appendChild(thumbField("Font", font));
+  panel.appendChild(thumbField(t("thumbnails.field.font"), font));
 
   const text = document.createElement("textarea");
   text.rows = 2;
   text.value = element.text;
-  text.placeholder = "Text with {parameters}";
+  text.placeholder = t("thumbnails.textPlaceholder");
   text.addEventListener("input", () => {
     element.text = text.value;
     renderParams();
     renderStageBoxes();
     scheduleStageRender();
   });
-  panel.appendChild(thumbField("Text", text));
+  panel.appendChild(thumbField(t("thumbnails.field.text"), text));
 
   const insertRow = document.createElement("div");
   insertRow.className = "thumb-row";
   const keyInput = document.createElement("input");
   keyInput.type = "text";
-  keyInput.placeholder = "parameter name";
+  keyInput.placeholder = t("thumbnails.paramNamePlaceholder");
   const insert = document.createElement("button");
   insert.type = "button";
-  insert.textContent = "Insert";
+  insert.textContent = t("common.insert");
   insert.addEventListener("click", () => {
     const key = keyInput.value.replace(/[^a-zA-Z0-9_]/g, "");
     if (!key) return;
@@ -1944,13 +1953,13 @@ function renderProps() {
 
   const styleGrid = document.createElement("div");
   styleGrid.className = "thumb-grid";
-  styleGrid.appendChild(thumbField("Color", color));
-  styleGrid.appendChild(thumbField("Stroke", strokeColor));
-  styleGrid.appendChild(thumbField("Stroke px", strokeWidth));
-  styleGrid.appendChild(thumbField("Shadow", shadowColor));
-  styleGrid.appendChild(thumbField("Blur", shadowBlur));
-  styleGrid.appendChild(thumbField("Shadow X", shadowX));
-  styleGrid.appendChild(thumbField("Shadow Y", shadowY));
+  styleGrid.appendChild(thumbField(t("thumbnails.field.color"), color));
+  styleGrid.appendChild(thumbField(t("thumbnails.field.stroke"), strokeColor));
+  styleGrid.appendChild(thumbField(t("thumbnails.field.strokeWidth"), strokeWidth));
+  styleGrid.appendChild(thumbField(t("thumbnails.field.shadow"), shadowColor));
+  styleGrid.appendChild(thumbField(t("thumbnails.field.blur"), shadowBlur));
+  styleGrid.appendChild(thumbField(t("thumbnails.field.shadowX"), shadowX));
+  styleGrid.appendChild(thumbField(t("thumbnails.field.shadowY"), shadowY));
   panel.appendChild(styleGrid);
 }
 
@@ -1976,7 +1985,7 @@ function renderParams() {
   if (!detected.length) {
     const hint = document.createElement("span");
     hint.className = "muted";
-    hint.textContent = "No parameters. Add {name} inside a text element.";
+    hint.textContent = t("thumbnails.noParams");
     els.thumbParams.appendChild(hint);
     return;
   }
@@ -1997,7 +2006,7 @@ function renderParams() {
     value.type = "text";
     value.value = param.value;
     value.placeholder =
-      param.mode === "static" ? "Fixed value" : "Preview value";
+      param.mode === "static" ? t("thumbnails.fixedValue") : t("thumbnails.previewValue");
     value.addEventListener("input", () => {
       param.value = value.value;
       scheduleStageRender();
@@ -2039,7 +2048,7 @@ function showContextMenu(x, y, items) {
 
 function addTextElement() {
   const element = defaultTextElement();
-  element.text = "New text";
+  element.text = t("thumbnails.newText");
   thumbElements.push(element);
   selectElement(element.id);
   renderParams();
@@ -2066,9 +2075,9 @@ async function addImageElement() {
 
 function elementMenuItems(element) {
   return [
-    { label: "Edit", action: () => selectElement(element.id) },
+    { label: t("common.edit"), action: () => selectElement(element.id) },
     {
-      label: "Duplicate",
+      label: t("common.duplicate"),
       action: () => {
         const copy = JSON.parse(JSON.stringify(element));
         copy.id = newThumbElementId();
@@ -2081,7 +2090,7 @@ function elementMenuItems(element) {
       },
     },
     {
-      label: "Bring to front",
+      label: t("common.bringToFront"),
       action: () => {
         thumbElements = thumbElements.filter((el) => el.id !== element.id);
         thumbElements.push(element);
@@ -2089,7 +2098,7 @@ function elementMenuItems(element) {
       },
     },
     {
-      label: "Send to back",
+      label: t("common.sendToBack"),
       action: () => {
         thumbElements = thumbElements.filter((el) => el.id !== element.id);
         thumbElements.unshift(element);
@@ -2098,7 +2107,7 @@ function elementMenuItems(element) {
     },
     { separator: true },
     {
-      label: "Delete",
+      label: t("common.delete"),
       action: () => {
         thumbElements = thumbElements.filter((el) => el.id !== element.id);
         if (selectedElementId === element.id) selectedElementId = null;
@@ -2112,10 +2121,10 @@ function elementMenuItems(element) {
 
 function canvasMenuItems() {
   return [
-    { label: "Add text", action: addTextElement },
-    { label: "Add image", action: addImageElement },
+    { label: t("common.addText"), action: addTextElement },
+    { label: t("common.addImage"), action: addImageElement },
     { separator: true },
-    { label: "Export PNG", action: exportThumb },
+    { label: t("common.exportPng"), action: exportThumb },
   ];
 }
 
@@ -2149,7 +2158,7 @@ function editThumbTemplate(tpl) {
 async function saveThumbTemplate() {
   const name = els.thumbName.value.trim();
   if (!name) {
-    els.thumbError.textContent = "Enter the template name.";
+    els.thumbError.textContent = t("templates.errorName");
     return;
   }
   const template = currentThumbTemplate(name);
@@ -2163,7 +2172,7 @@ async function saveThumbTemplate() {
     renderThumbTemplateList();
     refreshThumbTemplateSelects();
     resetEditor();
-    setMessage("Thumbnail template saved.", "ok");
+    setMessage(t("thumbnails.saved"), "ok");
   } catch (err) {
     els.thumbError.textContent = err.message;
   }
@@ -2185,7 +2194,7 @@ function renderThumbTemplateList() {
   if (!thumbnailTemplates.length) {
     const empty = document.createElement("div");
     empty.className = "tpl-empty";
-    empty.textContent = "No thumbnail templates yet.";
+    empty.textContent = t("thumbnails.empty");
     els.thumbList.appendChild(empty);
     return;
   }
@@ -2209,11 +2218,11 @@ function renderThumbTemplateList() {
     buttons.className = "tpl-item-actions";
     const edit = document.createElement("button");
     edit.className = "ghost";
-    edit.textContent = "Edit";
+    edit.textContent = t("common.edit");
     edit.addEventListener("click", () => editThumbTemplate(tpl));
     const del = document.createElement("button");
     del.className = "danger";
-    del.textContent = "Delete";
+    del.textContent = t("common.delete");
     del.addEventListener("click", async () => {
       thumbnailTemplates = thumbnailTemplates.filter((t) => t.id !== tpl.id);
       thumbnailTemplates = await window.api.saveThumbnailTemplates(
@@ -2347,7 +2356,7 @@ function fillIntroForm(intro) {
   introPath = intro ? intro.path : null;
   els.introFileName.textContent = introPath
     ? introPath.split(/[\\/]/).pop()
-    : "No video";
+    : t("intros.noVideo");
   els.introVolume.value = intro && intro.volume != null ? intro.volume * 100 : 100;
   els.introVolumeValue.textContent = els.introVolume.value;
 
@@ -2372,11 +2381,11 @@ function resetIntroEditor() {
 async function saveIntro() {
   const name = els.introName.value.trim();
   if (!name) {
-    els.introError.textContent = "Enter the intro name.";
+    els.introError.textContent = t("intros.errorName");
     return;
   }
   if (!introPath) {
-    els.introError.textContent = "Choose an intro video.";
+    els.introError.textContent = t("intros.errorVideo");
     return;
   }
   const intro = {
@@ -2395,7 +2404,7 @@ async function saveIntro() {
     refreshIntroSelects();
     resetIntroEditor();
     hideIntroPreview();
-    setMessage("Intro saved.", "ok");
+    setMessage(t("msg.introSaved"), "ok");
   } catch (err) {
     els.introError.textContent = err.message;
   }
@@ -2406,7 +2415,7 @@ function renderIntroList() {
   if (!intros.length) {
     const empty = document.createElement("div");
     empty.className = "tpl-empty";
-    empty.textContent = "No intros yet.";
+    empty.textContent = t("intros.empty");
     els.introList.appendChild(empty);
     return;
   }
@@ -2428,7 +2437,7 @@ function renderIntroList() {
     buttons.className = "tpl-item-actions";
     const edit = document.createElement("button");
     edit.className = "ghost";
-    edit.textContent = "Edit";
+    edit.textContent = t("common.edit");
     edit.addEventListener("click", () => {
       fillIntroForm(intro);
       hideIntroPreview();
@@ -2436,7 +2445,7 @@ function renderIntroList() {
     });
     const del = document.createElement("button");
     del.className = "danger";
-    del.textContent = "Delete";
+    del.textContent = t("common.delete");
     del.addEventListener("click", async () => {
       intros = intros.filter((entry) => entry.id !== intro.id);
       intros = await window.api.saveIntros(intros);
@@ -2476,7 +2485,7 @@ function hideIntroPreview() {
 
 function previewIntro() {
   if (!introPath) {
-    els.introError.textContent = "Choose an intro video first.";
+    els.introError.textContent = t("intros.errorPreview");
     return;
   }
   const video = els.introPreviewVideo;
@@ -2607,8 +2616,8 @@ function setCredentialsStatus(configured) {
   hasCredentials = configured;
   if (els.credStatus) {
     els.credStatus.textContent = configured
-      ? "Credentials configured."
-      : "Credentials not configured yet.";
+      ? t("credentials.configured")
+      : t("credentials.notConfigured");
     els.credStatus.className = "cred-status " + (configured ? "on" : "off");
   }
   if (els.setupBanner) {
@@ -2640,15 +2649,15 @@ function updateUploadGate() {
   button.className = "primary";
 
   if (needsSetup) {
-    title.textContent = "Set up your Google credentials";
+    title.textContent = t("gate.setupTitle");
     text.textContent =
-      "Add your own Google Cloud credentials to start uploading videos.";
-    button.textContent = "Go to Setup";
+      t("gate.setupText");
+    button.textContent = t("gate.setupButton");
     button.addEventListener("click", () => showView("credentials"));
   } else {
-    title.textContent = "Sign in to continue";
-    text.textContent = "Connect your Google account to upload videos.";
-    button.textContent = "Sign in with Google";
+    title.textContent = t("gate.authTitle");
+    text.textContent = t("gate.authText");
+    button.textContent = t("sidebar.signIn");
     button.addEventListener("click", () => els.loginBtn.click());
   }
 
@@ -2672,7 +2681,7 @@ async function importCredentials() {
     return;
   }
   els.credError.textContent = "";
-  setMessage("Credentials imported. You can sign in now.", "ok");
+  setMessage(t("msg.credentialsImported"), "ok");
   await loadConfigInfo();
   await refreshAuth();
 }
@@ -2734,19 +2743,19 @@ function renderUpdate() {
   text.className = "update-text";
 
   if (current.state === "available") {
-    title.textContent = "Update available";
+    title.textContent = t("update.available.title");
     text.textContent = current.manual
-      ? `Version ${current.version} is available. Download it from the release page.`
-      : `Version ${current.version} found. Starting download...`;
+      ? t("update.available.manual", { version: current.version })
+      : t("update.available.text", { version: current.version });
   } else if (current.state === "downloading") {
-    title.textContent = "Downloading update";
-    text.textContent = `${current.percent}% of version ${current.version || ""}`;
+    title.textContent = t("update.downloading.title");
+    text.textContent = t("update.downloading.text", { percent: current.percent, version: current.version || "" });
   } else if (current.state === "downloaded") {
-    title.textContent = "Update ready";
-    text.textContent = `Version ${current.version} downloaded. Restart to install.`;
+    title.textContent = t("update.ready.title");
+    text.textContent = t("update.ready.text", { version: current.version });
   } else if (current.state === "error") {
-    title.textContent = "Update failed";
-    text.textContent = current.error || "Unknown error";
+    title.textContent = t("update.failed.title");
+    text.textContent = current.error || t("update.unknownError");
   }
   popover.append(title, text);
 
@@ -2755,14 +2764,14 @@ function renderUpdate() {
   if (current.state === "downloaded") {
     const restart = document.createElement("button");
     restart.className = "primary";
-    restart.textContent = "Restart to update";
+    restart.textContent = t("update.restart");
     restart.addEventListener("click", () => window.api.installUpdate());
     actions.appendChild(restart);
   }
   const release = document.createElement("button");
   release.className =
     current.manual && current.state === "available" ? "primary" : "ghost";
-  release.textContent = "Open release page";
+  release.textContent = t("update.openRelease");
   release.addEventListener("click", () => window.api.openRelease());
   actions.appendChild(release);
   popover.appendChild(actions);
@@ -2814,14 +2823,14 @@ async function refreshAuth() {
 }
 
 els.loginBtn.addEventListener("click", async () => {
-  setMessage("Opening authorization in your browser...");
+  setMessage(t("msg.openingAuth"));
   try {
     await window.api.login();
     await refreshAuth();
     await loadPlaylists();
-    setMessage("Connected successfully.", "ok");
+    setMessage(t("msg.connected"), "ok");
   } catch (err) {
-    setMessage("Failed to connect: " + err.message, "error");
+    setMessage(t("msg.connectFailed", { message: err.message }), "error");
   }
 });
 
@@ -2830,7 +2839,7 @@ els.logoutBtn.addEventListener("click", async () => {
   await refreshAuth();
   playlists = [];
   refreshPlaylistSelects();
-  setMessage("Disconnected.");
+  setMessage(t("msg.disconnected"));
 });
 
 /* ---------- Upload events ---------- */
@@ -2880,6 +2889,8 @@ async function init() {
   } catch {
     /* keep defaults */
   }
+  window.i18n.setLocale(settings.language || "en");
+  window.i18n.apply();
   try {
     const info = await window.api.getAppInfo();
     els.aboutVersion.textContent = info.version;

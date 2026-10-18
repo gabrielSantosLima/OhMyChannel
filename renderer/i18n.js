@@ -1,0 +1,565 @@
+/*
+ * Minimal i18n for the renderer. Dictionaries live here; the renderer and the
+ * HTML (via data-i18n attributes) read from window.i18n.
+ */
+(function () {
+  const locales = {
+    en: {
+      "common.none": "None",
+      "common.new": "New",
+      "common.remove": "Remove",
+      "common.cancel": "Cancel",
+      "common.upload": "Upload",
+      "common.edit": "Edit",
+      "common.delete": "Delete",
+      "common.preview": "Preview",
+      "common.duplicate": "Duplicate",
+      "common.bringToFront": "Bring to front",
+      "common.sendToBack": "Send to back",
+      "common.addText": "Add text",
+      "common.addImage": "Add image",
+      "common.exportPng": "Export PNG",
+      "common.chooseImage": "Choose image",
+      "common.chooseVideo": "Choose video",
+      "common.insert": "Insert",
+      "common.save": "Save",
+
+      "nav.uploads": "Uploads",
+      "nav.templates": "Templates",
+      "nav.thumbnails": "Thumbnails",
+      "nav.intros": "Intros",
+      "nav.setup": "Setup",
+      "nav.settings": "Settings",
+      "nav.about": "About",
+
+      "sidebar.collapse": "Collapse menu",
+      "sidebar.signIn": "Sign in with Google",
+      "sidebar.signOut": "Sign out",
+      "sidebar.connected": "Connected",
+      "sidebar.disconnected": "Disconnected",
+
+      "uploads.banner":
+        "Finish the setup: add your Google credentials to start uploading.",
+      "uploads.bannerBtn": "Go to Setup",
+      "uploads.addVideos": "Add videos",
+      "uploads.uploadAll": "Upload all",
+      "uploads.empty":
+        'No videos in the queue. Click "Add videos" to select one or more files, or drag and drop them here.',
+      "uploads.queueInfo": "{count} in queue",
+
+      "status.pending": "Pending",
+      "status.queued": "Queued",
+      "status.rendering": "Rendering {percent}%",
+      "status.rendered": "Rendered",
+      "status.uploading": "Uploading {percent}%",
+      "status.done": "Done",
+      "status.error": "Error",
+      "status.canceled": "Canceled",
+
+      "item.title": "Title",
+      "item.titlePlaceholder": "Video title or /template ...",
+      "item.description": "Description",
+      "item.descriptionPlaceholder": "Video description or /template ...",
+      "item.playlist": "Playlist",
+      "item.playlistNone": "No playlist",
+      "item.publishAt": "Publish at",
+      "item.thumbnail": "Thumbnail",
+      "item.thumbnailTemplate": "Thumbnail template",
+      "item.intro": "Intro",
+      "item.noImage": "No image",
+
+      "command.templateHint": "Insert a template",
+
+      "msg.videosAddedOne": "1 video added.",
+      "msg.videosAdded": "{count} videos added.",
+      "msg.noVideoFiles": "No supported video files were dropped.",
+      "msg.dropImage": "Drop a JPG, PNG or WEBP image as the thumbnail.",
+      "msg.needsTitle": "Every upload needs a title.",
+      "msg.thumbnailGenFailed": "Thumbnail generation failed: {message}",
+      "msg.rendered": '"{name}" rendered. Click Upload to submit.',
+      "msg.renderError": "Render error: {message}",
+      "msg.uploaded": 'Uploaded "{title}" - {url}{warnings}',
+      "msg.uploadError": "Upload error: {message}",
+      "msg.startingUploads": "Starting {count} upload(s)...",
+      "msg.credentialsImported": "Credentials imported. You can sign in now.",
+      "msg.openingAuth": "Opening authorization in your browser...",
+      "msg.connected": "Connected successfully.",
+      "msg.connectFailed": "Failed to connect: {message}",
+      "msg.disconnected": "Disconnected.",
+      "msg.introSaved": "Intro saved.",
+
+      "templates.title": "Templates",
+      "templates.namePlaceholder": "Template name (e.g. gameplay)",
+      "templates.paramsPlaceholder":
+        "Parameters, comma separated (e.g. game,episode)",
+      "templates.patternPlaceholder": "Pattern (e.g. {game} #{episode})",
+      "templates.add": "Add template",
+      "templates.empty": "No templates yet.",
+      "templates.errorName": "Enter the template name.",
+      "templates.errorExists": "A template with this name already exists.",
+      "templates.errorPattern": "Enter the pattern.",
+      "templates.errorParam": "The pattern does not use parameter {param}.",
+      "templates.detailParams": "params",
+
+      "thumbnails.title": "Thumbnails",
+      "thumbnails.namePlaceholder": "Template name",
+      "thumbnails.background": "Background",
+      "thumbnails.export": "Export PNG",
+      "thumbnails.save": "Save",
+      "thumbnails.selectElement": "Select an element",
+      "thumbnails.textElement": "Text element",
+      "thumbnails.imageElement": "Image element",
+      "thumbnails.empty": "No thumbnail templates yet.",
+      "thumbnails.enterName": "Enter the template name.",
+      "thumbnails.saved": "Thumbnail template saved.",
+      "thumbnails.field.x": "X",
+      "thumbnails.field.y": "Y",
+      "thumbnails.field.width": "Width",
+      "thumbnails.field.height": "Height",
+      "thumbnails.field.opacity": "Opacity",
+      "thumbnails.field.lineHeight": "Line height",
+      "thumbnails.field.spacing": "Spacing",
+      "thumbnails.field.weight": "Weight",
+      "thumbnails.field.align": "Align",
+      "thumbnails.field.font": "Font",
+      "thumbnails.field.text": "Text",
+      "thumbnails.field.color": "Color",
+      "thumbnails.field.stroke": "Stroke",
+      "thumbnails.field.strokeWidth": "Stroke px",
+      "thumbnails.field.shadow": "Shadow",
+      "thumbnails.field.blur": "Blur",
+      "thumbnails.field.shadowX": "Shadow X",
+      "thumbnails.field.shadowY": "Shadow Y",
+      "thumbnails.textPlaceholder": "Text with {parameters}",
+      "thumbnails.paramNamePlaceholder": "parameter name",
+      "thumbnails.noParams": "No parameters. Add {name} inside a text element.",
+      "thumbnails.fixedValue": "Fixed value",
+      "thumbnails.previewValue": "Preview value",
+      "thumbnails.newText": "New text",
+
+      "intros.title": "Intros",
+      "intros.namePlaceholder": "Intro name",
+      "intros.noVideo": "No video",
+      "intros.volume": "Volume",
+      "intros.video": "Video",
+      "intros.audio": "Audio",
+      "intros.effect": "Effect",
+      "intros.fadeIn": "Fade in (s)",
+      "intros.fadeOut": "Fade out (s)",
+      "intros.duration": "Duration (s)",
+      "intros.mainVideo": "MAIN VIDEO",
+      "intros.approxPreview": "Approximate preview",
+      "intros.save": "Save intro",
+      "intros.empty": "No intros yet.",
+      "intros.errorName": "Enter the intro name.",
+      "intros.errorVideo": "Choose an intro video.",
+      "intros.errorPreview": "Choose an intro video first.",
+      "effect.none": "None",
+      "effect.fade": "Fade",
+      "effect.crossfade": "Crossfade",
+
+      "credentials.title": "Setup",
+      "credentials.configured": "Credentials configured.",
+      "credentials.notConfigured": "Credentials not configured yet.",
+      "credentials.intro":
+        "OhMyChannel uses your own Google Cloud OAuth credentials. Follow the steps below to create them and import the JSON file. No credentials are bundled with the app.",
+      "credentials.import": "Import credentials",
+      "credentials.refsLabel": "Official docs:",
+      "credentials.ref.oauth": "OAuth for desktop apps",
+      "credentials.ref.gettingStarted": "YouTube Data API getting started",
+      "credentials.ref.consent": "OAuth consent setup",
+      "credentials.ref.secret": "Client secret visibility",
+      "credentials.note":
+        'Note: while your app is in "Testing", refresh tokens expire in about 7 days. Publish the app or use a Workspace internal project for long-term use.',
+      "credentials.step1.title": "Create a Google Cloud project",
+      "credentials.step1.desc":
+        "Open the console and create a new project (or select an existing one).",
+      "credentials.step1.btn": "Open console",
+      "credentials.step2.title": "Enable the YouTube Data API v3",
+      "credentials.step2.desc":
+        "In APIs & Services, open the Library, find and enable the YouTube Data API v3.",
+      "credentials.step2.btn": "Open API library",
+      "credentials.step3.title": "Configure the OAuth consent screen",
+      "credentials.step3.desc":
+        "Under Google Auth Platform, set the app name and support email, choose <strong>External</strong>, and add your Google account as a <strong>Test user</strong>.",
+      "credentials.step3.btn1": "Open Auth Platform",
+      "credentials.step3.btn2": "Open Audience",
+      "credentials.step4.title": "Add the required scopes",
+      "credentials.step4.desc":
+        "Add <code>https://www.googleapis.com/auth/youtube.upload</code> and <code>https://www.googleapis.com/auth/youtube.force-ssl</code>.",
+      "credentials.step4.btn": "Open scopes",
+      "credentials.step5.title": "Create a Desktop OAuth client",
+      "credentials.step5.desc":
+        "Create an OAuth client of type <strong>Desktop app</strong> and download the JSON file (the client secret is shown only once).",
+      "credentials.step5.btn": "Open clients",
+      "credentials.step6.title": "Import the JSON in OhMyChannel",
+      "credentials.step6.desc":
+        "Use the button below to import the downloaded <code>client_secrets.json</code>. It is stored locally in your user data folder.",
+      "credentials.step7.title": "Sign in with Google",
+      "credentials.step7.desc":
+        'Go back to Uploads and click "Sign in with Google" to grant access.',
+
+      "gate.setupTitle": "Set up your Google credentials",
+      "gate.setupText":
+        "Add your own Google Cloud credentials to start uploading videos.",
+      "gate.setupButton": "Go to Setup",
+      "gate.authTitle": "Sign in to continue",
+      "gate.authText": "Connect your Google account to upload videos.",
+
+      "settings.title": "Settings",
+      "settings.theme.title": "Theme",
+      "settings.theme.desc": "Choose the app color scheme.",
+      "settings.theme.dark": "Dark",
+      "settings.theme.light": "Light",
+      "settings.background.title": "Run in background",
+      "settings.background.desc":
+        "When enabled, closing the window keeps the app running in the system tray.",
+      "settings.parallelUploads.title": "Parallel uploads",
+      "settings.parallelUploads.desc":
+        "Maximum number of videos uploaded at the same time.",
+      "settings.parallelRenders.title": "Parallel renders",
+      "settings.parallelRenders.desc":
+        "Maximum number of videos rendered (intro + video) at the same time.",
+      "settings.resolution.title": "Render resolution",
+      "settings.resolution.desc":
+        "Resolution used when rendering the intro with the video.",
+      "settings.autoSubmit.title": "Submit automatically after rendering",
+      "settings.autoSubmit.desc":
+        "When enabled, the video is uploaded right after rendering. When disabled, you confirm the upload manually.",
+      "settings.checkUpdates.title": "Check for updates automatically",
+      "settings.checkUpdates.desc": "Look for new releases in the background.",
+      "settings.downloadUpdates.title": "Download updates automatically",
+      "settings.downloadUpdates.desc":
+        "Download a new version as soon as it is found.",
+      "settings.allowPrerelease.title": "Allow pre-releases",
+      "settings.allowPrerelease.desc":
+        "Include alpha/beta versions when checking for updates.",
+      "settings.language.title": "Language",
+      "settings.language.desc": "Choose the app language.",
+
+      "update.buttonTitle": "Update",
+      "update.available.title": "Update available",
+      "update.available.text": "Version {version} found. Starting download...",
+      "update.available.manual":
+        "Version {version} is available. Download it from the release page.",
+      "update.downloading.title": "Downloading update",
+      "update.downloading.text": "{percent}% of version {version}",
+      "update.ready.title": "Update ready",
+      "update.ready.text": "Version {version} downloaded. Restart to install.",
+      "update.failed.title": "Update failed",
+      "update.unknownError": "Unknown error",
+      "update.restart": "Restart to update",
+      "update.openRelease": "Open release page",
+
+      "about.title": "About",
+      "about.version": "Version",
+      "about.text":
+        "Pre-upload helper for YouTube. Fill in the title and description now and finish the rest in YouTube Studio.",
+    },
+    "pt-BR": {
+      "common.none": "Nenhum",
+      "common.new": "Novo",
+      "common.remove": "Remover",
+      "common.cancel": "Cancelar",
+      "common.upload": "Enviar",
+      "common.edit": "Editar",
+      "common.delete": "Excluir",
+      "common.preview": "Pré-visualizar",
+      "common.duplicate": "Duplicar",
+      "common.bringToFront": "Trazer para frente",
+      "common.sendToBack": "Enviar para o fundo",
+      "common.addText": "Adicionar texto",
+      "common.addImage": "Adicionar imagem",
+      "common.exportPng": "Exportar PNG",
+      "common.chooseImage": "Escolher imagem",
+      "common.chooseVideo": "Escolher vídeo",
+      "common.insert": "Inserir",
+      "common.save": "Salvar",
+
+      "nav.uploads": "Envios",
+      "nav.templates": "Modelos",
+      "nav.thumbnails": "Miniaturas",
+      "nav.intros": "Intros",
+      "nav.setup": "Conta",
+      "nav.settings": "Configurações",
+      "nav.about": "Sobre",
+
+      "sidebar.collapse": "Recolher menu",
+      "sidebar.signIn": "Entrar com o Google",
+      "sidebar.signOut": "Sair",
+      "sidebar.connected": "Conectado",
+      "sidebar.disconnected": "Desconectado",
+
+      "uploads.banner":
+        "Conclua a configuração: adicione suas credenciais do Google para começar a enviar.",
+      "uploads.bannerBtn": "Ir para Configuração",
+      "uploads.addVideos": "Adicionar vídeos",
+      "uploads.uploadAll": "Enviar todos",
+      "uploads.empty":
+        'Nenhum vídeo na fila. Clique em "Adicionar vídeos" para escolher um ou mais arquivos, ou arraste e solte aqui.',
+      "uploads.queueInfo": "{count} na fila",
+
+      "status.pending": "Pendente",
+      "status.queued": "Na fila",
+      "status.rendering": "Renderizando {percent}%",
+      "status.rendered": "Renderizado",
+      "status.uploading": "Enviando {percent}%",
+      "status.done": "Concluído",
+      "status.error": "Erro",
+      "status.canceled": "Cancelado",
+
+      "item.title": "Título",
+      "item.titlePlaceholder": "Título do vídeo ou /template ...",
+      "item.description": "Descrição",
+      "item.descriptionPlaceholder": "Descrição do vídeo ou /template ...",
+      "item.playlist": "Playlist",
+      "item.playlistNone": "Sem playlist",
+      "item.publishAt": "Publicar em",
+      "item.thumbnail": "Thumbnail",
+      "item.thumbnailTemplate": "Modelo de thumbnail",
+      "item.intro": "Intro",
+      "item.noImage": "Sem imagem",
+
+      "command.templateHint": "Inserir um template",
+
+      "msg.videosAddedOne": "1 vídeo adicionado.",
+      "msg.videosAdded": "{count} vídeos adicionados.",
+      "msg.noVideoFiles": "Nenhum arquivo de vídeo compatível foi solto.",
+      "msg.dropImage": "Solte uma imagem JPG, PNG ou WEBP como thumbnail.",
+      "msg.needsTitle": "Todo envio precisa de um título.",
+      "msg.thumbnailGenFailed": "Falha ao gerar a thumbnail: {message}",
+      "msg.rendered": '"{name}" renderizado. Clique em Enviar para submeter.',
+      "msg.renderError": "Erro no render: {message}",
+      "msg.uploaded": 'Enviado "{title}" - {url}{warnings}',
+      "msg.uploadError": "Erro no envio: {message}",
+      "msg.startingUploads": "Iniciando {count} envio(s)...",
+      "msg.credentialsImported": "Credenciais importadas. Você já pode entrar.",
+      "msg.openingAuth": "Abrindo a autorização no navegador...",
+      "msg.connected": "Conectado com sucesso.",
+      "msg.connectFailed": "Falha ao conectar: {message}",
+      "msg.disconnected": "Desconectado.",
+      "msg.introSaved": "Intro salva.",
+
+      "templates.title": "Modelos",
+      "templates.namePlaceholder": "Nome do modelo (ex.: gameplay)",
+      "templates.paramsPlaceholder":
+        "Parâmetros, separados por vírgula (ex.: game,episode)",
+      "templates.patternPlaceholder": "Padrão (ex.: {game} #{episode})",
+      "templates.add": "Adicionar modelo",
+      "templates.empty": "Nenhum modelo ainda.",
+      "templates.errorName": "Informe o nome do modelo.",
+      "templates.errorExists": "Já existe um modelo com este nome.",
+      "templates.errorPattern": "Informe o padrão.",
+      "templates.errorParam": "O padrão não usa o parâmetro {param}.",
+      "templates.detailParams": "parâmetros",
+
+      "thumbnails.title": "Miniaturas",
+      "thumbnails.namePlaceholder": "Nome do modelo",
+      "thumbnails.background": "Fundo",
+      "thumbnails.export": "Exportar PNG",
+      "thumbnails.save": "Salvar",
+      "thumbnails.selectElement": "Selecione um elemento",
+      "thumbnails.textElement": "Elemento de texto",
+      "thumbnails.imageElement": "Elemento de imagem",
+      "thumbnails.empty": "Nenhum modelo de thumbnail ainda.",
+      "thumbnails.enterName": "Informe o nome do modelo.",
+      "thumbnails.saved": "Modelo de thumbnail salvo.",
+      "thumbnails.field.x": "X",
+      "thumbnails.field.y": "Y",
+      "thumbnails.field.width": "Largura",
+      "thumbnails.field.height": "Altura",
+      "thumbnails.field.opacity": "Opacidade",
+      "thumbnails.field.lineHeight": "Altura da linha",
+      "thumbnails.field.spacing": "Espaçamento",
+      "thumbnails.field.weight": "Peso",
+      "thumbnails.field.align": "Alinhamento",
+      "thumbnails.field.font": "Fonte",
+      "thumbnails.field.text": "Texto",
+      "thumbnails.field.color": "Cor",
+      "thumbnails.field.stroke": "Contorno",
+      "thumbnails.field.strokeWidth": "Contorno px",
+      "thumbnails.field.shadow": "Sombra",
+      "thumbnails.field.blur": "Desfoque",
+      "thumbnails.field.shadowX": "Sombra X",
+      "thumbnails.field.shadowY": "Sombra Y",
+      "thumbnails.textPlaceholder": "Texto com {parameters}",
+      "thumbnails.paramNamePlaceholder": "nome do parâmetro",
+      "thumbnails.noParams":
+        "Sem parâmetros. Adicione {name} dentro de um elemento de texto.",
+      "thumbnails.fixedValue": "Valor fixo",
+      "thumbnails.previewValue": "Valor de pré-visualização",
+      "thumbnails.newText": "Novo texto",
+
+      "intros.title": "Intros",
+      "intros.namePlaceholder": "Nome da intro",
+      "intros.noVideo": "Sem vídeo",
+      "intros.volume": "Volume",
+      "intros.video": "Vídeo",
+      "intros.audio": "Áudio",
+      "intros.effect": "Efeito",
+      "intros.fadeIn": "Fade in (s)",
+      "intros.fadeOut": "Fade out (s)",
+      "intros.duration": "Duração (s)",
+      "intros.mainVideo": "VÍDEO PRINCIPAL",
+      "intros.approxPreview": "Prévia aproximada",
+      "intros.save": "Salvar intro",
+      "intros.empty": "Nenhuma intro ainda.",
+      "intros.errorName": "Informe o nome da intro.",
+      "intros.errorVideo": "Escolha um vídeo de intro.",
+      "intros.errorPreview": "Escolha um vídeo de intro primeiro.",
+      "effect.none": "Nenhum",
+      "effect.fade": "Fade",
+      "effect.crossfade": "Crossfade",
+
+      "credentials.title": "Configuração",
+      "credentials.configured": "Credenciais configuradas.",
+      "credentials.notConfigured": "Credenciais ainda não configuradas.",
+      "credentials.intro":
+        "O OhMyChannel usa as suas próprias credenciais OAuth do Google Cloud. Siga os passos abaixo para criá-las e importar o arquivo JSON. Nenhuma credencial é incluída no app.",
+      "credentials.import": "Importar credenciais",
+      "credentials.refsLabel": "Documentação oficial:",
+      "credentials.ref.oauth": "OAuth para apps de desktop",
+      "credentials.ref.gettingStarted": "Introdução à YouTube Data API",
+      "credentials.ref.consent": "Configuração do consentimento OAuth",
+      "credentials.ref.secret": "Visibilidade do client secret",
+      "credentials.note":
+        'Observação: enquanto o app estiver em "Testing", os refresh tokens expiram em cerca de 7 dias. Publique o app ou use um projeto interno de Workspace para uso contínuo.',
+      "credentials.step1.title": "Crie um projeto no Google Cloud",
+      "credentials.step1.desc":
+        "Abra o console e crie um novo projeto (ou selecione um existente).",
+      "credentials.step1.btn": "Abrir console",
+      "credentials.step2.title": "Ative a YouTube Data API v3",
+      "credentials.step2.desc":
+        "Em APIs e Serviços, abra a Biblioteca, encontre e ative a YouTube Data API v3.",
+      "credentials.step2.btn": "Abrir biblioteca de APIs",
+      "credentials.step3.title": "Configure a tela de consentimento OAuth",
+      "credentials.step3.desc":
+        "No Google Auth Platform, defina o nome e o e-mail de suporte, escolha <strong>External</strong> e adicione sua conta do Google como <strong>Test user</strong>.",
+      "credentials.step3.btn1": "Abrir Auth Platform",
+      "credentials.step3.btn2": "Abrir Público-alvo",
+      "credentials.step4.title": "Adicione os escopos necessários",
+      "credentials.step4.desc":
+        "Adicione <code>https://www.googleapis.com/auth/youtube.upload</code> e <code>https://www.googleapis.com/auth/youtube.force-ssl</code>.",
+      "credentials.step4.btn": "Abrir escopos",
+      "credentials.step5.title": "Crie um cliente OAuth de Desktop",
+      "credentials.step5.desc":
+        "Crie um cliente OAuth do tipo <strong>Desktop app</strong> e baixe o arquivo JSON (o client secret é exibido apenas uma vez).",
+      "credentials.step5.btn": "Abrir clientes",
+      "credentials.step6.title": "Importe o JSON no OhMyChannel",
+      "credentials.step6.desc":
+        "Use o botão abaixo para importar o <code>client_secrets.json</code> baixado. Ele fica salvo localmente na pasta de dados do usuário.",
+      "credentials.step7.title": "Entre com o Google",
+      "credentials.step7.desc":
+        'Volte para Envios e clique em "Entrar com o Google" para conceder acesso.',
+
+      "gate.setupTitle": "Configure suas credenciais do Google",
+      "gate.setupText":
+        "Adicione suas credenciais do Google Cloud para começar a enviar vídeos.",
+      "gate.setupButton": "Ir para Configuração",
+      "gate.authTitle": "Entre para continuar",
+      "gate.authText": "Conecte sua conta do Google para enviar vídeos.",
+
+      "settings.title": "Configurações",
+      "settings.theme.title": "Tema",
+      "settings.theme.desc": "Escolha o esquema de cores do app.",
+      "settings.theme.dark": "Escuro",
+      "settings.theme.light": "Claro",
+      "settings.background.title": "Executar em segundo plano",
+      "settings.background.desc":
+        "Quando ativado, fechar a janela mantém o app rodando na bandeja do sistema.",
+      "settings.parallelUploads.title": "Envios em paralelo",
+      "settings.parallelUploads.desc":
+        "Número máximo de vídeos enviados ao mesmo tempo.",
+      "settings.parallelRenders.title": "Renders em paralelo",
+      "settings.parallelRenders.desc":
+        "Número máximo de vídeos renderizados (intro + vídeo) ao mesmo tempo.",
+      "settings.resolution.title": "Resolução de render",
+      "settings.resolution.desc":
+        "Resolução usada ao renderizar a intro com o vídeo.",
+      "settings.autoSubmit.title": "Enviar automaticamente após renderizar",
+      "settings.autoSubmit.desc":
+        "Quando ativado, o vídeo é enviado logo após o render. Quando desativado, você confirma o envio manualmente.",
+      "settings.checkUpdates.title": "Verificar atualizações automaticamente",
+      "settings.checkUpdates.desc": "Procurar novas versões em segundo plano.",
+      "settings.downloadUpdates.title": "Baixar atualizações automaticamente",
+      "settings.downloadUpdates.desc":
+        "Baixar uma nova versão assim que for encontrada.",
+      "settings.allowPrerelease.title": "Permitir pré-lançamentos",
+      "settings.allowPrerelease.desc":
+        "Incluir versões alpha/beta ao verificar atualizações.",
+      "settings.language.title": "Idioma",
+      "settings.language.desc": "Escolha o idioma do app.",
+
+      "update.buttonTitle": "Atualização",
+      "update.available.title": "Atualização disponível",
+      "update.available.text":
+        "Versão {version} encontrada. Iniciando download...",
+      "update.available.manual":
+        "A versão {version} está disponível. Baixe na página da release.",
+      "update.downloading.title": "Baixando atualização",
+      "update.downloading.text": "{percent}% da versão {version}",
+      "update.ready.title": "Atualização pronta",
+      "update.ready.text": "Versão {version} baixada. Reinicie para instalar.",
+      "update.failed.title": "Falha na atualização",
+      "update.unknownError": "Erro desconhecido",
+      "update.restart": "Reiniciar para atualizar",
+      "update.openRelease": "Abrir página da release",
+
+      "about.title": "Sobre",
+      "about.version": "Versão",
+      "about.text":
+        "Auxiliar de pré-upload para o YouTube. Preencha o título e a descrição agora e finalize o resto no YouTube Studio.",
+    },
+  };
+
+  let current = "en";
+
+  function t(key, params) {
+    const dict = locales[current] || locales.en;
+    let value =
+      dict[key] != null
+        ? dict[key]
+        : locales.en[key] != null
+          ? locales.en[key]
+          : key;
+    if (params) {
+      Object.keys(params).forEach((name) => {
+        value = value.split("{" + name + "}").join(String(params[name]));
+      });
+    }
+    return value;
+  }
+
+  function setLocale(locale) {
+    current = locales[locale] ? locale : "en";
+    document.documentElement.lang = current;
+  }
+
+  function getLocale() {
+    return current;
+  }
+
+  function apply(root) {
+    const scope = root || document;
+    scope.querySelectorAll("[data-i18n]").forEach((el) => {
+      el.textContent = t(el.getAttribute("data-i18n"));
+    });
+    scope.querySelectorAll("[data-i18n-html]").forEach((el) => {
+      el.innerHTML = t(el.getAttribute("data-i18n-html"));
+    });
+    scope.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+      el.setAttribute(
+        "placeholder",
+        t(el.getAttribute("data-i18n-placeholder")),
+      );
+    });
+    scope.querySelectorAll("[data-i18n-title]").forEach((el) => {
+      el.setAttribute("title", t(el.getAttribute("data-i18n-title")));
+    });
+    scope.querySelectorAll("[data-i18n-aria]").forEach((el) => {
+      el.setAttribute("aria-label", t(el.getAttribute("data-i18n-aria")));
+    });
+  }
+
+  window.i18n = { t, setLocale, getLocale, apply, locales };
+})();

@@ -84,6 +84,13 @@ const { VideoRenderer } = require("./src/domain/services/VideoRenderer");
 const ffmpegPath = require("ffmpeg-static");
 const ffprobePath = require("ffprobe-static").path;
 const { autoUpdater } = require("electron-updater");
+const { translate } = require("./src/messages");
+
+function tr(key, params) {
+  const language =
+    currentSettings && currentSettings.language ? currentSettings.language : "en";
+  return translate(language, key, params);
+}
 
 const { AuthController } = require("./src/controllers/AuthController");
 const { UploadController } = require("./src/controllers/UploadController");
@@ -266,15 +273,15 @@ function notify(title, body) {
 }
 
 function notifyUploadFailed(message) {
-  notify("Upload failed", message);
+  notify(tr("notify.uploadFailed.title"), message);
 }
 
 function notifyUploadDone(videoId) {
   if (!Notification.isSupported()) return;
   const url = `https://studio.youtube.com/video/${videoId}/edit`;
   const notification = new Notification({
-    title: "Upload complete",
-    body: "Click to open YouTube Studio and finish the video details.",
+    title: tr("notify.uploadComplete.title"),
+    body: tr("notify.uploadComplete.body"),
     icon: ICO_PATH,
   });
   notification.on("click", () => {
@@ -301,20 +308,20 @@ function updateTray() {
   const count = activeUploads.size;
   const percent = overallProgress();
   const statusLabel = count
-    ? `Uploading ${count} video${count > 1 ? "s" : ""}: ${percent}%`
-    : "No upload in progress";
+    ? tr("tray.uploading", { count, percent })
+    : tr("tray.noUpload");
 
   tray.setToolTip(count ? `OhMyChannel - ${statusLabel}` : "OhMyChannel");
 
   const items = [
-    { label: "Open OhMyChannel", click: showWindow },
+    { label: tr("tray.open"), click: showWindow },
     { type: "separator" },
     { label: statusLabel, enabled: false },
   ];
   if (count) {
-    items.push({ label: `Cancel all (${count})`, click: cancelAllUploads });
+    items.push({ label: tr("tray.cancelAll", { count }), click: cancelAllUploads });
   }
-  items.push({ type: "separator" }, { label: "Quit", click: quitApp });
+  items.push({ type: "separator" }, { label: tr("tray.quit"), click: quitApp });
 
   tray.setContextMenu(Menu.buildFromTemplate(items));
 }
@@ -473,7 +480,7 @@ async function runRender(job) {
       currentSettings &&
       !currentSettings.autoSubmitAfterRender
     ) {
-      notify("Render complete", "Click Upload to submit the video.");
+      notify(tr("notify.renderComplete.title"), tr("notify.renderComplete.body"));
     }
     resolve(data);
   } catch (err) {
@@ -730,7 +737,7 @@ function registerIpc() {
 
   ipcMain.handle("thumbnails:export", async (_event, payload) => {
     const result = await dialog.showSaveDialog(mainWindow, {
-      title: "Export thumbnail",
+      title: tr("dialog.exportThumbnail"),
       defaultPath: `${(payload && payload.template && payload.template.name) || "thumbnail"}.png`,
       filters: [{ name: "PNG image", extensions: ["png"] }],
     });
@@ -742,7 +749,7 @@ function registerIpc() {
 
   ipcMain.handle("dialog:pickVideo", async () => {
     const result = await dialog.showOpenDialog(mainWindow, {
-      title: "Choose the videos",
+      title: tr("dialog.chooseVideos"),
       properties: ["openFile", "multiSelections"],
       filters: [
         { name: "Videos", extensions: ["mp4", "mkv", "mov", "avi", "webm"] },
@@ -754,7 +761,7 @@ function registerIpc() {
 
   ipcMain.handle("dialog:pickThumbnail", async () => {
     const result = await dialog.showOpenDialog(mainWindow, {
-      title: "Choose the thumbnail",
+      title: tr("dialog.chooseThumbnail"),
       properties: ["openFile"],
       filters: [
         { name: "Images", extensions: ["jpg", "jpeg", "png", "webp"] },
@@ -766,7 +773,7 @@ function registerIpc() {
 
   ipcMain.handle("dialog:pickIntro", async () => {
     const result = await dialog.showOpenDialog(mainWindow, {
-      title: "Choose the intro video",
+      title: tr("dialog.chooseIntro"),
       properties: ["openFile"],
       filters: [
         { name: "Videos", extensions: ["mp4", "mkv", "mov", "avi", "webm"] },
