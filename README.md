@@ -5,10 +5,6 @@ only provide the title and description — the upload runs in the background wit
 live progress in the system tray, and when it finishes a notification lets you
 jump straight to YouTube Studio to complete the remaining details.
 
-It supports reusable text templates through the `/template` command, playlist
-selection, scheduling the publish date, custom thumbnails, and generating
-thumbnails from visual templates.
-
 ## Features
 
 - Sign in with Google (OAuth) and upload videos to YouTube.
@@ -28,8 +24,20 @@ thumbnails from visual templates.
 - Visual thumbnail editor: background image, text and image elements, drag to
   position, right-click context menu to add/duplicate/reorder/delete elements,
   dynamic or static parameters, and PNG export.
-- Sidebar navigation with a Settings screen (dark/light theme, run-in-background
-  toggle, number of parallel uploads) and an About screen showing the version.
+- Intros: upload intro videos, configure separate video and audio transitions
+  (none/fade/crossfade), adjust the intro volume, and preview the result with a
+  placeholder for the main video.
+- Render the intro together with the video before uploading, at a configurable
+  resolution (defaults to 2K) and the main video's frame rate. Rendering runs in
+  its own queue with a configurable number of parallel renders and "Queued"
+  status. Optionally submit automatically after rendering, or confirm manually.
+- Setup screen that guides you through creating your own Google Cloud OAuth
+  credentials and importing them; no credentials are bundled with the app.
+- Auto-update: the app checks for new releases, downloads them in the background
+  and shows an "Update" icon in the top bar to restart and install.
+- Sidebar navigation with a Settings screen (theme, run-in-background toggle,
+  parallel uploads/renders, render resolution, and update preferences) and an
+  About screen showing the version.
 
 ## Getting started
 
@@ -38,45 +46,18 @@ npm install
 npm start
 ```
 
-Create an OAuth desktop client in the Google Cloud Console, enable the
-**YouTube Data API v3**, and save the downloaded credentials as
-`client_secrets.json` in the project root.
+OhMyChannel uses your own Google Cloud OAuth credentials. Open the **Setup**
+screen in the app for a step-by-step guide, then click "Import credentials" to
+add your `client_secrets.json`. No credentials are bundled with the app.
 
-The app requests the following OAuth scopes:
+## Platforms
 
-- `https://www.googleapis.com/auth/youtube.upload`
-- `https://www.googleapis.com/auth/youtube.force-ssl`
+- **Windows**: NSIS installer and portable build.
+- **Linux**: AppImage and `.deb`.
 
-If you previously signed in with older scopes, sign out and sign in again to
-grant the new ones (required for playlists).
-
-## Templates
-
-In the title or description field, type `/template` and pick a template.
-Each parameter becomes an inline chip where you can type freely, including
-spaces. Expanded values are sent to YouTube on upload.
-
-## Thumbnails
-
-Create reusable thumbnail templates in the **Thumbnails** screen:
-
-- Upload a background image (e.g. exported from Figma).
-- Add text elements with `{parameters}` and image elements.
-- Mark each parameter as **dynamic** (asked per video) or **static** (fixed for
-  every thumbnail).
-- Drag elements to position them, right-click for actions, and export the result
-  as PNG to preview it externally.
-
-Fonts are loaded from `assets/fonts`. A default font (Lato) and BBH Hegarty ship
-with the app; drop additional `.ttf`/`.otf` files there to use them.
-
-## Architecture
-
-Layered architecture with dependencies pointing inward
-(controllers → use cases → services/entities). Domain code never depends on
-Electron. `main.js` is the composition root (Electron lifecycle, tray,
-notifications and IPC), and `preload.js` exposes a secure IPC bridge to the
-renderer.
+Automatic updates are supported on the Windows NSIS installer and the Linux
+AppImage. The portable and `.deb` builds cannot auto-update; their update icon
+links to the release page so you can download the new version manually.
 
 ## Releasing
 
@@ -84,8 +65,7 @@ Releases are cut through the **manual** `Release` GitHub Action
 (`.github/workflows/release.yml`, `workflow_dispatch`). It bumps the version in
 `package.json`, generates release notes from the Conventional Commits since the
 last tag (with commit references), commits `chore(release): v<version>`, pushes
-a `v<version>` tag, and creates a GitHub Release. No build artifacts are
-uploaded yet.
+a `v<version>` tag, and creates a GitHub Release.
 
 To generate release notes locally:
 
@@ -95,10 +75,10 @@ node scripts/release-notes.js
 
 ### Building installers
 
-The **Build** GitHub Action (`.github/workflows/build.yml`, manual
-`workflow_dispatch`) builds the installers on a matrix (Windows + Linux) and
-attaches them to an existing release. Provide the release tag (e.g. `v0.0.1`).
-Targets: Windows (`nsis`, `portable`) and Linux (`AppImage`, `deb`).
+The **Build** GitHub Action (`.github/workflows/build.yml`) builds the installers
+on a matrix (Windows + Linux) and attaches them to the release. It runs
+automatically after a release, and can also be dispatched manually with a tag
+(e.g. `v0.0.1`). Target formats are described in the Platforms section.
 
 Locally you can run `npm run dist:win` or `npm run dist:linux` on the matching
 operating system. Credentials are never bundled: `client_secrets.json` and
