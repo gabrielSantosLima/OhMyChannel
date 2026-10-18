@@ -497,6 +497,8 @@ function cancelRender(id) {
 /* ---------- Auto update ---------- */
 
 const RELEASES_URL = "https://github.com/gabrielSantosLima/OhMyChannel/releases";
+const LATEST_RELEASE_API =
+  "https://api.github.com/repos/gabrielSantosLima/OhMyChannel/releases/latest";
 const UPDATE_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 let updateState = {
@@ -505,8 +507,35 @@ let updateState = {
   percent: 0,
   error: null,
   canInstall: false,
+  manual: false,
 };
 let updateTimer = null;
+
+function updaterSupported() {
+  if (!app.isPackaged) return false;
+  if (process.platform === "win32") return !process.env.PORTABLE_EXECUTABLE_DIR;
+  if (process.platform === "linux") return !!process.env.APPIMAGE;
+  return false;
+}
+
+function parseVersion(value) {
+  return String(value || "")
+    .replace(/^v/, "")
+    .split("-")[0]
+    .split(".")
+    .map((part) => parseInt(part, 10) || 0);
+}
+
+function isNewerVersion(candidate, current) {
+  const a = parseVersion(candidate);
+  const b = parseVersion(current);
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    const x = a[i] || 0;
+    const y = b[i] || 0;
+    if (x !== y) return x > y;
+  }
+  return false;
+}
 
 function sendUpdateState() {
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -519,45 +548,103 @@ function setUpdateState(patch) {
   sendUpdateState();
 }
 
+function applyUpdaterSettings() {
+  if (!updaterSupported()) return;
+  autoUpdater.autoDownload = currentSettings
+    ? currentSettings.autoDownloadUpdates
+    : true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.allowPrerelease =
+    (currentSettings ? currentSettings.allowPrerelease : false) ||
+    app.getVersion().includes("-");
+}
+
+async function checkGithubLatest() {
+  try {
+    setUpdateState({ state: "checking", error: null });
+    const response = await fetch(LATEST_RELEASE_API, {
+      headers: {
+        Accept: "application/vnd.github+json",
+        "User-Agent": "OhMyChannel",
+      },
+    });
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    const data = await response.json();
+    const latest = String(data.tag_name || "").replace(/^v/, "");
+    if (latest && isNewerVersion(latest, app.getVersion())) {
+      setUpdateState({
+        state: "available",
+        version: latest,
+        manual: true,
+        error: null,
+      });
+    } else {
+      setUpdateState({ state: "idle", version: null, manual: true });
+    }
+  } catch (err) {
+    setUpdateState({ state: "error", error: err.message, manual: true });
+  }
+}
+
+async function runUpdateCheck() {
+  if (updaterSupported()) {
+    try {
+      await autoUpdater.checkForUpdates();
+    } catch (err) {
+      setUpdateState({ state: "error", error: err.message });
+    }
+  } else if (app.isPackaged) {
+    await checkGithubLatest();
+  }
+}
+
 function setupUpdater() {
+  const supported = updaterSupported();
+  updateState = { ...updateState, manual: !supported };
   if (!app.isPackaged) return;
 
-  autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
-  autoUpdater.allowPrerelease = app.getVersion().includes("-");
+  if (supported) {
+    applyUpdaterSettings();
+    autoUpdater.on("checking-for-update", () =>
+      setUpdateState({ state: "checking", error: null })
+    );
+    autoUpdater.on("update-available", (info) =>
+      setUpdateState({ state: "available", version: info.version, error: null })
+    );
+    autoUpdater.on("update-not-available", () =>
+      setUpdateState({
+        state: "idle",
+        version: null,
+        percent: 0,
+        error: null,
+        canInstall: false,
+      })
+    );
+    autoUpdater.on("download-progress", (progress) =>
+      setUpdateState({
+        state: "downloading",
+        percent: Math.round(progress.percent || 0),
+      })
+    );
+    autoUpdater.on("update-downloaded", (info) =>
+      setUpdateState({
+        state: "downloaded",
+        version: info.version,
+        percent: 100,
+        canInstall: true,
+      })
+    );
+    autoUpdater.on("error", (err) =>
+      setUpdateState({ state: "error", error: err.message })
+    );
+  }
 
-  autoUpdater.on("checking-for-update", () =>
-    setUpdateState({ state: "checking", error: null })
-  );
-  autoUpdater.on("update-available", (info) =>
-    setUpdateState({ state: "available", version: info.version, error: null })
-  );
-  autoUpdater.on("update-not-available", () =>
-    setUpdateState({ state: "idle", version: null, percent: 0, error: null, canInstall: false })
-  );
-  autoUpdater.on("download-progress", (progress) =>
-    setUpdateState({
-      state: "downloading",
-      percent: Math.round(progress.percent || 0),
-    })
-  );
-  autoUpdater.on("update-downloaded", (info) =>
-    setUpdateState({
-      state: "downloaded",
-      version: info.version,
-      percent: 100,
-      canInstall: true,
-    })
-  );
-  autoUpdater.on("error", (err) =>
-    setUpdateState({ state: "error", error: err.message })
-  );
-
-  autoUpdater.checkForUpdates().catch(() => {});
-  updateTimer = setInterval(
-    () => autoUpdater.checkForUpdates().catch(() => {}),
-    UPDATE_INTERVAL_MS
-  );
+  if (!currentSettings || currentSettings.autoCheckUpdates) {
+    runUpdateCheck();
+  }
+  updateTimer = setInterval(() => {
+    if (!currentSettings || currentSettings.autoCheckUpdates) runUpdateCheck();
+  }, UPDATE_INTERVAL_MS);
 }
 
 /* ---------- IPC ---------- */
@@ -606,17 +693,11 @@ function registerIpc() {
 
   ipcMain.handle("update:getState", () => updateState);
   ipcMain.handle("update:check", async () => {
-    if (app.isPackaged) {
-      try {
-        await autoUpdater.checkForUpdates();
-      } catch (err) {
-        setUpdateState({ state: "error", error: err.message });
-      }
-    }
+    await runUpdateCheck();
     return updateState;
   });
   ipcMain.handle("update:install", () => {
-    if (app.isPackaged) autoUpdater.quitAndInstall();
+    if (app.isPackaged && updaterSupported()) autoUpdater.quitAndInstall();
   });
   ipcMain.handle("update:openRelease", () => {
     shell.openExternal(RELEASES_URL);
@@ -626,6 +707,7 @@ function registerIpc() {
   ipcMain.handle("settings:save", async (_event, changes) => {
     const updated = await settingsController.save(changes);
     currentSettings = updated;
+    applyUpdaterSettings();
     processUploadQueue();
     return updated;
   });

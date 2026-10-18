@@ -16,6 +16,11 @@ const els = {
   renderParallelInput: document.getElementById("renderParallelInput"),
   renderResolutionSelect: document.getElementById("renderResolutionSelect"),
   autoSubmitToggle: document.getElementById("autoSubmitToggle"),
+  autoCheckUpdatesToggle: document.getElementById("autoCheckUpdatesToggle"),
+  autoDownloadUpdatesToggle: document.getElementById(
+    "autoDownloadUpdatesToggle"
+  ),
+  allowPrereleaseToggle: document.getElementById("allowPrereleaseToggle"),
   collapseBtn: document.getElementById("collapseBtn"),
   tplName: document.getElementById("tplName"),
   tplParams: document.getElementById("tplParams"),
@@ -154,6 +159,9 @@ function renderSettingsForm() {
   els.renderParallelInput.value = settings.maxParallelRenders;
   els.renderResolutionSelect.value = settings.renderResolution;
   els.autoSubmitToggle.checked = !!settings.autoSubmitAfterRender;
+  els.autoCheckUpdatesToggle.checked = !!settings.autoCheckUpdates;
+  els.autoDownloadUpdatesToggle.checked = !!settings.autoDownloadUpdates;
+  els.allowPrereleaseToggle.checked = !!settings.allowPrerelease;
   els.app.classList.toggle("collapsed", !!settings.sidebarCollapsed);
 }
 
@@ -185,6 +193,20 @@ els.renderResolutionSelect.addEventListener("change", () =>
 
 els.autoSubmitToggle.addEventListener("change", () =>
   persistSettings({ autoSubmitAfterRender: els.autoSubmitToggle.checked })
+);
+
+els.autoCheckUpdatesToggle.addEventListener("change", () =>
+  persistSettings({ autoCheckUpdates: els.autoCheckUpdatesToggle.checked })
+);
+
+els.autoDownloadUpdatesToggle.addEventListener("change", () =>
+  persistSettings({
+    autoDownloadUpdates: els.autoDownloadUpdatesToggle.checked,
+  })
+);
+
+els.allowPrereleaseToggle.addEventListener("change", () =>
+  persistSettings({ allowPrerelease: els.allowPrereleaseToggle.checked })
 );
 
 els.collapseBtn.addEventListener("click", () =>
@@ -2671,7 +2693,9 @@ function renderUpdate() {
 
   if (current.state === "available") {
     title.textContent = "Update available";
-    text.textContent = `Version ${current.version} found. Starting download...`;
+    text.textContent = current.manual
+      ? `Version ${current.version} is available. Download it from the release page.`
+      : `Version ${current.version} found. Starting download...`;
   } else if (current.state === "downloading") {
     title.textContent = "Downloading update";
     text.textContent = `${current.percent}% of version ${current.version || ""}`;
@@ -2694,7 +2718,8 @@ function renderUpdate() {
     actions.appendChild(restart);
   }
   const release = document.createElement("button");
-  release.className = "ghost";
+  release.className =
+    current.manual && current.state === "available" ? "primary" : "ghost";
   release.textContent = "Open release page";
   release.addEventListener("click", () => window.api.openRelease());
   actions.appendChild(release);

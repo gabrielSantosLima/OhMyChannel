@@ -8,6 +8,9 @@ const DEFAULTS = {
   autoSubmitAfterRender: true,
   renderResolution: "2560x1440",
   maxParallelRenders: 2,
+  autoCheckUpdates: true,
+  autoDownloadUpdates: true,
+  allowPrerelease: false,
 };
 const MIN_PARALLEL = 1;
 const MAX_PARALLEL = 10;
@@ -21,6 +24,9 @@ class AppSettings {
     autoSubmitAfterRender,
     renderResolution,
     maxParallelRenders,
+    autoCheckUpdates,
+    autoDownloadUpdates,
+    allowPrerelease,
   }) {
     this.theme = theme;
     this.background = background;
@@ -29,6 +35,9 @@ class AppSettings {
     this.autoSubmitAfterRender = autoSubmitAfterRender;
     this.renderResolution = renderResolution;
     this.maxParallelRenders = maxParallelRenders;
+    this.autoCheckUpdates = autoCheckUpdates;
+    this.autoDownloadUpdates = autoDownloadUpdates;
+    this.allowPrerelease = allowPrerelease;
   }
 
   static from(input = {}) {
@@ -42,10 +51,13 @@ class AppSettings {
       return Math.min(MAX_PARALLEL, Math.max(MIN_PARALLEL, Math.round(parallel)));
     };
 
-    const autoSubmitAfterRender =
-      input.autoSubmitAfterRender === undefined
-        ? DEFAULTS.autoSubmitAfterRender
-        : !!input.autoSubmitAfterRender;
+    const bool = (value, fallback) =>
+      value === undefined ? fallback : !!value;
+
+    const autoSubmitAfterRender = bool(
+      input.autoSubmitAfterRender,
+      DEFAULTS.autoSubmitAfterRender
+    );
 
     const renderResolution = RESOLUTIONS.includes(input.renderResolution)
       ? input.renderResolution
@@ -62,6 +74,12 @@ class AppSettings {
         input.maxParallelRenders,
         DEFAULTS.maxParallelRenders
       ),
+      autoCheckUpdates: bool(input.autoCheckUpdates, DEFAULTS.autoCheckUpdates),
+      autoDownloadUpdates: bool(
+        input.autoDownloadUpdates,
+        DEFAULTS.autoDownloadUpdates
+      ),
+      allowPrerelease: bool(input.allowPrerelease, DEFAULTS.allowPrerelease),
     });
   }
 
