@@ -1,11 +1,13 @@
 class ThumbnailController {
   constructor({
     generateThumbnailUseCase,
+    exportThumbnailUseCase,
     listThumbnailTemplatesUseCase,
     saveThumbnailTemplatesUseCase,
     listThumbnailFontsUseCase,
   }) {
     this.generateThumbnailUseCase = generateThumbnailUseCase;
+    this.exportThumbnailUseCase = exportThumbnailUseCase;
     this.listThumbnailTemplatesUseCase = listThumbnailTemplatesUseCase;
     this.saveThumbnailTemplatesUseCase = saveThumbnailTemplatesUseCase;
     this.listThumbnailFontsUseCase = listThumbnailFontsUseCase;
@@ -13,6 +15,10 @@ class ThumbnailController {
 
   generate(payload) {
     return this.generateThumbnailUseCase.execute(payload);
+  }
+
+  export(payload) {
+    return this.exportThumbnailUseCase.execute(payload);
   }
 
   list() {

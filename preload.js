@@ -18,6 +18,8 @@ contextBridge.exposeInMainWorld("api", {
   saveThumbnailTemplates: (list) =>
     ipcRenderer.invoke("thumbnails:save", list),
   listThumbnailFonts: () => ipcRenderer.invoke("thumbnails:fonts"),
+  exportThumbnail: (payload) =>
+    ipcRenderer.invoke("thumbnails:export", payload),
   getSettings: () => ipcRenderer.invoke("settings:get"),
   saveSettings: (changes) => ipcRenderer.invoke("settings:save", changes),
   onProgress: (cb) =>

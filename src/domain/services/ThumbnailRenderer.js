@@ -80,6 +80,18 @@ class ThumbnailRenderer {
     return `data:${mime};base64,${data}`;
   }
 
+  resolveValues(template, values = {}) {
+    const merged = { ...values };
+    for (const param of template.parameters || []) {
+      if (param.mode === "static") {
+        merged[param.key] = param.value;
+      } else if (merged[param.key] == null) {
+        merged[param.key] = param.value || "";
+      }
+    }
+    return merged;
+  }
+
   resolveLayer(layer, overrides = {}) {
     const resolved = { ...layer };
     if (overrides.color) resolved.color = overrides.color;
@@ -97,6 +109,7 @@ class ThumbnailRenderer {
 
   buildElement(template, values, overrides) {
     const children = [];
+    const merged = this.resolveValues(template, values);
     const background = this.loadBackground(template.backgroundPath);
 
     if (background) {
@@ -118,9 +131,32 @@ class ThumbnailRenderer {
       });
     }
 
-    for (const rawLayer of template.layers) {
-      const layer = this.resolveLayer(rawLayer, overrides);
-      const text = this.applyValues(layer.text, values);
+    for (const rawElement of template.elements) {
+      if (rawElement.type === "image") {
+        const src = this.loadBackground(rawElement.src);
+        if (!src) continue;
+        const style = {
+          position: "absolute",
+          top: rawElement.y,
+          left: rawElement.x,
+          width: rawElement.width || undefined,
+          height: rawElement.height || undefined,
+          opacity: rawElement.opacity,
+        };
+        children.push({
+          type: "img",
+          props: {
+            src,
+            width: rawElement.width || undefined,
+            height: rawElement.height || undefined,
+            style,
+          },
+        });
+        continue;
+      }
+
+      const layer = this.resolveLayer(rawElement, overrides);
+      const text = this.applyValues(layer.text, merged);
       if (!text) continue;
       const style = {
         position: "absolute",
@@ -139,7 +175,10 @@ class ThumbnailRenderer {
         fontSize: layer.fontSize,
         fontWeight: layer.fontWeight,
         color: layer.color,
-        lineHeight: 1.1,
+        lineHeight: layer.lineHeight,
+        letterSpacing: layer.letterSpacing
+          ? `${layer.letterSpacing}px`
+          : undefined,
         whiteSpace: "pre-wrap",
         textAlign: layer.align,
       };

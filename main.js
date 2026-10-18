@@ -53,6 +53,9 @@ const {
   GenerateThumbnailUseCase,
 } = require("./src/domain/useCases/GenerateThumbnailUseCase");
 const {
+  ExportThumbnailUseCase,
+} = require("./src/domain/useCases/ExportThumbnailUseCase");
+const {
   ListThumbnailTemplatesUseCase,
 } = require("./src/domain/useCases/ListThumbnailTemplatesUseCase");
 const {
@@ -165,6 +168,9 @@ function buildContainer() {
     generateThumbnailUseCase: new GenerateThumbnailUseCase({
       thumbnailRenderer,
       outputDir: path.join(app.getPath("userData"), "thumbnails"),
+    }),
+    exportThumbnailUseCase: new ExportThumbnailUseCase({
+      thumbnailRenderer,
     }),
     listThumbnailTemplatesUseCase: new ListThumbnailTemplatesUseCase({
       thumbnailTemplateStore,
@@ -414,6 +420,18 @@ function registerIpc() {
     thumbnailController.save(templates)
   );
   ipcMain.handle("thumbnails:fonts", () => thumbnailController.fonts());
+
+  ipcMain.handle("thumbnails:export", async (_event, payload) => {
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: "Export thumbnail",
+      defaultPath: `${(payload && payload.template && payload.template.name) || "thumbnail"}.png`,
+      filters: [{ name: "PNG image", extensions: ["png"] }],
+    });
+    if (result.canceled || !result.filePath) return null;
+    await thumbnailController.export({ ...payload, outputPath: result.filePath });
+    shell.openPath(result.filePath);
+    return result.filePath;
+  });
 
   ipcMain.handle("dialog:pickVideo", async () => {
     const result = await dialog.showOpenDialog(mainWindow, {
