@@ -1190,6 +1190,13 @@ label {
   padding: 10px;
 }
 
+.select-input {
+  width: auto;
+  min-width: 200px;
+  text-align: left;
+  padding: 10px;
+}
+
 /* ---------- About ---------- */
 
 .about {
