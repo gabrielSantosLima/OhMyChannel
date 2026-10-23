@@ -9,6 +9,7 @@
       "common.new": "New",
       "common.remove": "Remove",
       "common.cancel": "Cancel",
+      "common.confirm": "Confirm",
       "common.upload": "Upload",
       "common.edit": "Edit",
       "common.delete": "Delete",
@@ -111,7 +112,11 @@
       "ai.apiKeyDesc":
         "The key is encrypted with the operating system secure storage.",
       "ai.apiKeyPlaceholder": "DeepInfra API key",
-      "ai.clearKey": "Remove stored key",
+      "ai.removeKey": "Remove API key",
+      "ai.removeKeyTitle": "Remove API key",
+      "ai.removeKeyConfirm":
+        "The stored DeepInfra API key will be removed from this computer. This cannot be undone.",
+      "ai.keyRemoved": "API key removed.",
       "ai.keyConfigured": "API key configured",
       "ai.keyNotConfigured": "Not configured",
       "ai.model": "Model",
@@ -342,6 +347,7 @@
       "common.new": "Novo",
       "common.remove": "Remover",
       "common.cancel": "Cancelar",
+      "common.confirm": "Confirmar",
       "common.upload": "Enviar",
       "common.edit": "Editar",
       "common.delete": "Excluir",
@@ -444,7 +450,11 @@
       "ai.apiKeyDesc":
         "A chave é criptografada com o armazenamento seguro do sistema operacional.",
       "ai.apiKeyPlaceholder": "API key da DeepInfra",
-      "ai.clearKey": "Remover chave salva",
+      "ai.removeKey": "Remover API key",
+      "ai.removeKeyTitle": "Remover API key",
+      "ai.removeKeyConfirm":
+        "A API key da DeepInfra salva neste computador será removida. Esta ação não pode ser desfeita.",
+      "ai.keyRemoved": "API key removida.",
       "ai.keyConfigured": "API key configurada",
       "ai.keyNotConfigured": "Não configurada",
       "ai.model": "Modelo",

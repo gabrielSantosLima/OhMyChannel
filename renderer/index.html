@@ -185,10 +185,6 @@
                 <span class="setting-desc" data-i18n="ai.apiKeyDesc">
                   The key is encrypted with the operating system secure storage.
                 </span>
-                <label class="ai-inline-check">
-                  <input type="checkbox" id="aiClearKey" />
-                  <span data-i18n="ai.clearKey">Remove stored key</span>
-                </label>
               </div>
               <div class="ai-field-stack">
                 <input
@@ -201,6 +197,15 @@
                 <span id="aiKeyState" class="ai-key-state missing" data-i18n="ai.keyNotConfigured">
                   Not configured
                 </span>
+                <button
+                  id="aiRemoveKey"
+                  type="button"
+                  class="danger"
+                  data-i18n="ai.removeKey"
+                  disabled
+                >
+                  Remove API key
+                </button>
               </div>
             </div>
 
@@ -655,6 +660,25 @@
         </section>
         </div>
       </main>
+    </div>
+
+    <div
+      id="confirmModal"
+      class="modal-backdrop hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirmTitle"
+    >
+      <div class="modal">
+        <h3 id="confirmTitle" class="modal-title"></h3>
+        <p id="confirmMessage" class="modal-message"></p>
+        <div class="modal-actions">
+          <button id="confirmCancel" type="button" class="ghost" data-i18n="common.cancel">
+            Cancel
+          </button>
+          <button id="confirmOk" type="button" class="danger"></button>
+        </div>
+      </div>
     </div>
 
     <script src="i18n.js"></script>

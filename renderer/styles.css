@@ -1697,3 +1697,58 @@ button.link {
 .ai-hint.error {
   color: var(--error);
 }
+
+/* ---------- Generic confirmation modal ---------- */
+
+.modal-actions button.danger,
+.ai-field-stack button.danger {
+  color: var(--error);
+  border-color: var(--error);
+  background: transparent;
+}
+
+.modal-actions button.danger:hover:not(:disabled),
+.ai-field-stack button.danger:hover:not(:disabled) {
+  background: var(--error);
+  border-color: var(--error);
+  color: var(--accent-contrast);
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.modal {
+  width: 100%;
+  max-width: 420px;
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: 0 20px 60px var(--shadow);
+}
+
+.modal-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.modal-message {
+  margin: 0 0 22px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

@@ -81,7 +81,7 @@ const els = {
   aiProvider: document.getElementById("aiProvider"),
   aiApiKey: document.getElementById("aiApiKey"),
   aiKeyState: document.getElementById("aiKeyState"),
-  aiClearKey: document.getElementById("aiClearKey"),
+  aiRemoveKey: document.getElementById("aiRemoveKey"),
   aiModel: document.getElementById("aiModel"),
   aiModelSelect: document.getElementById("aiModelSelect"),
   aiModelHint: document.getElementById("aiModelHint"),
@@ -94,6 +94,11 @@ const els = {
   aiTest: document.getElementById("aiTest"),
   aiResetTemplate: document.getElementById("aiResetTemplate"),
   aiStatus: document.getElementById("aiStatus"),
+  confirmModal: document.getElementById("confirmModal"),
+  confirmTitle: document.getElementById("confirmTitle"),
+  confirmMessage: document.getElementById("confirmMessage"),
+  confirmOk: document.getElementById("confirmOk"),
+  confirmCancel: document.getElementById("confirmCancel"),
 };
 
 const t = (key, params) => window.i18n.t(key, params);
@@ -155,6 +160,51 @@ function setMessage(text, type = "") {
   els.message.textContent = text;
   els.message.className = "message " + type;
 }
+
+/* ---------- Generic confirmation modal ---------- */
+
+let confirmResolve = null;
+
+function closeConfirm(result) {
+  if (!confirmResolve) return;
+  const resolve = confirmResolve;
+  confirmResolve = null;
+  els.confirmModal.classList.add("hidden");
+  resolve(result);
+}
+
+function confirmDialog({
+  title = "",
+  message = "",
+  confirmLabel,
+  cancelLabel,
+  danger = true,
+} = {}) {
+  if (confirmResolve) closeConfirm(false);
+  els.confirmTitle.textContent = title;
+  els.confirmMessage.textContent = message;
+  els.confirmOk.textContent = confirmLabel || t("common.confirm");
+  els.confirmOk.className = danger ? "danger" : "primary";
+  els.confirmCancel.textContent = cancelLabel || t("common.cancel");
+  els.confirmModal.classList.remove("hidden");
+  els.confirmCancel.focus();
+  return new Promise((resolve) => {
+    confirmResolve = resolve;
+  });
+}
+
+els.confirmOk.addEventListener("click", () => closeConfirm(true));
+els.confirmCancel.addEventListener("click", () => closeConfirm(false));
+els.confirmModal.addEventListener("mousedown", (event) => {
+  if (event.target === els.confirmModal) closeConfirm(false);
+});
+document.addEventListener("keydown", (event) => {
+  if (els.confirmModal.classList.contains("hidden")) return;
+  if (event.key === "Escape") {
+    event.preventDefault();
+    closeConfirm(false);
+  }
+});
 
 /* ---------- Theme ---------- */
 
@@ -1386,6 +1436,7 @@ function renderAiForm() {
     : t("ai.keyNotConfigured");
   els.aiKeyState.className =
     "ai-key-state " + (aiConfig.hasApiKey ? "configured" : "missing");
+  els.aiRemoveKey.disabled = !aiConfig.hasApiKey;
   fillAiModelSelect();
   if (aiModels.includes(aiConfig.model)) {
     els.aiModelSelect.value = aiConfig.model;
@@ -1415,16 +1466,40 @@ async function saveAiSettings() {
       channelUrl: els.aiChannelUrl.value.trim(),
       template: els.aiTemplate.value,
       apiKey: apiKey || undefined,
-      clearApiKey: els.aiClearKey.checked,
     });
     els.aiApiKey.value = "";
-    els.aiClearKey.checked = false;
     renderAiForm();
     setAiStatus(t("ai.saved"), "ok");
     return true;
   } catch (err) {
     setAiStatus(err.message, "error");
     return false;
+  }
+}
+
+async function removeAiKey() {
+  if (!aiConfig.hasApiKey) return;
+  const confirmed = await confirmDialog({
+    title: t("ai.removeKeyTitle"),
+    message: t("ai.removeKeyConfirm"),
+    confirmLabel: t("ai.removeKey"),
+    danger: true,
+  });
+  if (!confirmed) return;
+  try {
+    aiConfig = await window.api.saveAiConfig({
+      provider: aiConfig.provider,
+      model: aiConfig.model,
+      channelName: aiConfig.channelName,
+      channelUrl: aiConfig.channelUrl,
+      template: aiConfig.template,
+      clearApiKey: true,
+    });
+    els.aiApiKey.value = "";
+    renderAiForm();
+    setAiStatus(t("ai.keyRemoved"), "ok");
+  } catch (err) {
+    setAiStatus(err.message, "error");
   }
 }
 
@@ -1473,6 +1548,7 @@ async function detectAiChannel() {
 }
 
 els.aiSave.addEventListener("click", saveAiSettings);
+els.aiRemoveKey.addEventListener("click", removeAiKey);
 els.aiLoadModels.addEventListener("click", loadAiModels);
 els.aiTest.addEventListener("click", testAiConnection);
 els.aiDetectChannel.addEventListener("click", detectAiChannel);
