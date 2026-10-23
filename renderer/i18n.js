@@ -154,6 +154,8 @@
 
       "msg.videosAddedOne": "1 video added.",
       "msg.videosAdded": "{count} videos added.",
+      "msg.videoRemoved": "1 video removed.",
+      "msg.videosRemoved": "{count} videos removed.",
       "msg.noVideoFiles": "No supported video files were dropped.",
       "msg.dropImage": "Drop a JPG, PNG or WEBP image as the thumbnail.",
       "msg.needsTitle": "Every upload needs a title.",
@@ -490,6 +492,8 @@
 
       "msg.videosAddedOne": "1 vídeo adicionado.",
       "msg.videosAdded": "{count} vídeos adicionados.",
+      "msg.videoRemoved": "1 vídeo removido.",
+      "msg.videosRemoved": "{count} vídeos removidos.",
       "msg.noVideoFiles": "Nenhum arquivo de vídeo compatível foi solto.",
       "msg.dropImage": "Solte uma imagem JPG, PNG ou WEBP como thumbnail.",
       "msg.needsTitle": "Todo envio precisa de um título.",

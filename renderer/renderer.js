@@ -1157,6 +1157,7 @@ function removeItem(item) {
   itemById.delete(item.id);
   item.dom.card.remove();
   refreshQueueInfo();
+  setMessage(t("msg.videoRemoved"), "");
 }
 
 function handleItemAction(item) {
