@@ -72,10 +72,8 @@
       "item.noImage": "No image",
 
       "command.templateHint": "Insert a template",
-      "command.generateHint": "Generate a title or description with AI",
-      "command.generateTitleHint": "Generate a video title",
+      "command.generateHint": "Generate a video description with AI",
       "command.generateDescriptionHint": "Generate a video description",
-      "command.generatePreviewTitle": "Title prompt: {prompt}",
       "command.generatePreviewDescription": "Description prompt: {prompt}",
       "command.preview": "Preview",
       "command.missing": "missing",
@@ -410,10 +408,8 @@
       "item.noImage": "Sem imagem",
 
       "command.templateHint": "Inserir um template",
-      "command.generateHint": "Gerar um título ou descrição com IA",
-      "command.generateTitleHint": "Gerar um título para o vídeo",
+      "command.generateHint": "Gerar uma descrição de vídeo com IA",
       "command.generateDescriptionHint": "Gerar uma descrição para o vídeo",
-      "command.generatePreviewTitle": "Prompt do título: {prompt}",
       "command.generatePreviewDescription": "Prompt da descrição: {prompt}",
       "command.preview": "Prévia",
       "command.missing": "faltando",

@@ -745,16 +745,12 @@
       if (command === "/generate" && tokens.length === 2) {
         const query = tokens[1].toLowerCase();
         showMenu(
-          ["title", "description"]
+          ["description"]
             .filter((target) => target.startsWith(query))
             .map((target) => ({
               icon: "/",
               label: target,
-              hint: tr(
-                target === "title"
-                  ? "command.generateTitleHint"
-                  : "command.generateDescriptionHint"
-              ),
+              hint: tr("command.generateDescriptionHint"),
               apply: () => insertAiWidget(target),
             }))
         );
@@ -784,17 +780,11 @@
 
       const activeWidget = widgetFromCaret();
       if (activeWidget && hasClass(activeWidget, "ai-cmd")) {
-        const target = activeWidget.dataset.target || "description";
         const chip = activeWidget.querySelector(".chip");
         const prompt = chip ? chip.textContent.trim() : "";
         if (prompt) {
           showStatus(
-            tr(
-              target === "title"
-                ? "command.generatePreviewTitle"
-                : "command.generatePreviewDescription",
-              { prompt }
-            ),
+            tr("command.generatePreviewDescription", { prompt }),
             false
           );
         } else {
@@ -805,18 +795,13 @@
 
       const line = lineTextBeforeCaret();
       const generateMatch = line.match(
-        /^\/generate\s+(title|description)(?:\s+(?:prompt:\s*)?([\s\S]*))?$/i
+        /^\/generate\s+description(?:\s+(?:prompt:\s*)?([\s\S]*))?$/i
       );
       if (generateMatch) {
-        const prompt = (generateMatch[2] || "").trim();
+        const prompt = (generateMatch[1] || "").trim();
         if (prompt) {
           showStatus(
-            tr(
-              generateMatch[1].toLowerCase() === "title"
-                ? "command.generatePreviewTitle"
-                : "command.generatePreviewDescription",
-              { prompt }
-            ),
+            tr("command.generatePreviewDescription", { prompt }),
             false
           );
         } else {
@@ -937,15 +922,11 @@
 
         const line = lineTextBeforeCaret();
         const generateMatch = line.match(
-          /^\/generate\s+(title|description)(?:\s+(?:prompt:\s*)?([\s\S]*))?$/i
+          /^\/generate\s+description(?:\s+(?:prompt:\s*)?([\s\S]*))?$/i
         );
         if (generateMatch && generateAi) {
           event.preventDefault();
-          runAi(
-            generateMatch[2] || "",
-            generateMatch[1].toLowerCase(),
-            line
-          );
+          runAi(generateMatch[1] || "", "description", line);
           return;
         }
 
