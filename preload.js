@@ -22,6 +22,13 @@ contextBridge.exposeInMainWorld("api", {
   cancelUpload: (id) => ipcRenderer.invoke("upload:cancel", id),
   listTemplates: () => ipcRenderer.invoke("templates:list"),
   saveTemplates: (list) => ipcRenderer.invoke("templates:save", list),
+  getAiConfig: () => ipcRenderer.invoke("ai:getConfig"),
+  saveAiConfig: (changes) => ipcRenderer.invoke("ai:saveConfig", changes),
+  listAiModels: () => ipcRenderer.invoke("ai:listModels"),
+  generateDescription: (payload) =>
+    ipcRenderer.invoke("ai:generateDescription", payload),
+  testAi: () => ipcRenderer.invoke("ai:test"),
+  getChannelInfo: () => ipcRenderer.invoke("ai:channelInfo"),
   listPlaylists: () => ipcRenderer.invoke("playlists:list"),
   generateThumbnail: (payload) =>
     ipcRenderer.invoke("thumbnails:generate", payload),

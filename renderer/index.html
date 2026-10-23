@@ -44,6 +44,14 @@
             </svg>
             <span data-i18n="nav.templates">Templates</span>
           </button>
+          <button class="nav-item" data-view="ai">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path
+                d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h3a4 4 0 0 1 4 4v1h1a2 2 0 1 1 0 4h-1v1a4 4 0 0 1-4 4h-1v1a2 2 0 1 1-4 0v-1H8a4 4 0 0 1-4-4v-1H3a2 2 0 1 1 0-4h1v-1a4 4 0 0 1 4-4h3V5.73A2 2 0 0 1 12 2zm-4 9v6h8v-6H8zm2 2h4v2h-4v-2z"
+              />
+            </svg>
+            <span data-i18n="nav.ai">AI</span>
+          </button>
           <button class="nav-item" data-view="thumbnails">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
               <path
@@ -149,6 +157,139 @@
             <span id="tplError" class="tpl-error"></span>
           </div>
           <div id="tplList" class="tpl-list"></div>
+        </section>
+
+        <section id="view-ai" class="view">
+          <h2 data-i18n="ai.title">AI</h2>
+          <p class="muted" data-i18n="ai.intro">
+            Generate video descriptions with DeepInfra. The API key is encrypted
+            and stored only on this computer.
+          </p>
+
+          <div class="ai-form">
+            <div class="setting">
+              <div class="setting-info">
+                <span class="setting-title" data-i18n="ai.provider">Provider</span>
+                <span class="setting-desc" data-i18n="ai.providerDesc">
+                  AI provider used to generate descriptions.
+                </span>
+              </div>
+              <select id="aiProvider" class="ai-select">
+                <option value="deepinfra">DeepInfra</option>
+              </select>
+            </div>
+
+            <div class="setting">
+              <div class="setting-info">
+                <span class="setting-title" data-i18n="ai.apiKey">API key</span>
+                <span class="setting-desc" data-i18n="ai.apiKeyDesc">
+                  The key is encrypted with the operating system secure storage.
+                </span>
+                <label class="ai-inline-check">
+                  <input type="checkbox" id="aiClearKey" />
+                  <span data-i18n="ai.clearKey">Remove stored key</span>
+                </label>
+              </div>
+              <div class="ai-field-stack">
+                <input
+                  id="aiApiKey"
+                  type="password"
+                  autocomplete="off"
+                  placeholder="sk-..."
+                  data-i18n-placeholder="ai.apiKeyPlaceholder"
+                />
+                <span id="aiKeyState" class="ai-key-state missing" data-i18n="ai.keyNotConfigured">
+                  Not configured
+                </span>
+              </div>
+            </div>
+
+            <div class="setting">
+              <div class="setting-info">
+                <span class="setting-title" data-i18n="ai.model">Model</span>
+                <span class="setting-desc" data-i18n="ai.modelDesc">
+                  Load the available DeepInfra models or type one manually.
+                </span>
+              </div>
+              <div class="ai-field-stack">
+                <input
+                  id="aiModel"
+                  type="text"
+                  placeholder="model name"
+                  data-i18n-placeholder="ai.modelPlaceholder"
+                />
+                <select id="aiModelSelect" class="ai-select">
+                  <option value="" data-i18n="ai.modelChoose">
+                    Choose a loaded model...
+                  </option>
+                </select>
+                <span
+                  id="aiModelHint"
+                  class="ai-hint error hidden"
+                  data-i18n="ai.modelRequired"
+                >
+                  Select a model to use /generate.
+                </span>
+                <button id="aiLoadModels" type="button" data-i18n="ai.loadModels">
+                  Load models
+                </button>
+              </div>
+            </div>
+
+            <div class="setting">
+              <div class="setting-info">
+                <span class="setting-title" data-i18n="ai.channel">Channel</span>
+                <span class="setting-desc" data-i18n="ai.channelDesc">
+                  Used by $channel_name and $channel_link. Detect from the
+                  connected account or edit manually.
+                </span>
+              </div>
+              <div class="ai-field-stack">
+                <input
+                  id="aiChannelName"
+                  type="text"
+                  placeholder="Channel name"
+                  data-i18n-placeholder="ai.channelNamePlaceholder"
+                />
+                <input
+                  id="aiChannelUrl"
+                  type="text"
+                  placeholder="https://www.youtube.com/@channel"
+                  data-i18n-placeholder="ai.channelUrlPlaceholder"
+                />
+                <button id="aiDetectChannel" type="button" data-i18n="ai.detectChannel">
+                  Use connected channel
+                </button>
+              </div>
+            </div>
+
+            <div class="setting ai-template-setting">
+              <div class="setting-info">
+                <span class="setting-title" data-i18n="ai.template">Description template</span>
+                <span class="setting-desc" data-i18n="ai.templateDesc">
+                  Use $description, $hashtags and form variables such as
+                  $playlist_link, $title and $channel_link.
+                </span>
+              </div>
+              <textarea
+                id="aiTemplate"
+                class="ai-template"
+                rows="10"
+                spellcheck="false"
+              ></textarea>
+              <div class="ai-actions">
+                <button id="aiResetTemplate" type="button" data-i18n="ai.resetTemplate">
+                  Reset template
+                </button>
+              </div>
+            </div>
+
+            <div class="ai-actions">
+              <button id="aiSave" class="primary" data-i18n="common.save">Save</button>
+              <button id="aiTest" data-i18n="ai.test">Test connection</button>
+            </div>
+            <p id="aiStatus" class="ai-status"></p>
+          </div>
         </section>
 
         <section id="view-thumbnails" class="view">
@@ -504,6 +645,8 @@
     </div>
 
     <script src="i18n.js"></script>
+    <script src="variables.js"></script>
+    <script src="commands.js"></script>
     <script src="renderer.js"></script>
   </body>
 </html>

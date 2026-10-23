@@ -8,6 +8,7 @@ const {
   ipcMain,
   dialog,
   shell,
+  safeStorage,
 } = require("electron");
 const path = require("path");
 const fs = require("fs");
@@ -19,6 +20,10 @@ const {
 } = require("./src/domain/services/ClientConfigStore");
 const { TemplateStore } = require("./src/domain/services/TemplateStore");
 const { SettingsStore } = require("./src/domain/services/SettingsStore");
+const { AiConfigStore } = require("./src/domain/services/AiConfigStore");
+const {
+  DeepInfraService,
+} = require("./src/domain/services/DeepInfraService");
 const { SystemBrowser } = require("./src/domain/services/SystemBrowser");
 const {
   AuthCallbackServer,
@@ -40,6 +45,21 @@ const {
 const {
   SaveTemplatesUseCase,
 } = require("./src/domain/useCases/SaveTemplatesUseCase");
+const {
+  GetAiConfigUseCase,
+} = require("./src/domain/useCases/GetAiConfigUseCase");
+const {
+  SaveAiConfigUseCase,
+} = require("./src/domain/useCases/SaveAiConfigUseCase");
+const {
+  ListAiModelsUseCase,
+} = require("./src/domain/useCases/ListAiModelsUseCase");
+const {
+  GenerateDescriptionUseCase,
+} = require("./src/domain/useCases/GenerateDescriptionUseCase");
+const {
+  GetChannelInfoUseCase,
+} = require("./src/domain/useCases/GetChannelInfoUseCase");
 const {
   GetSettingsUseCase,
 } = require("./src/domain/useCases/GetSettingsUseCase");
@@ -97,6 +117,7 @@ const { UploadController } = require("./src/controllers/UploadController");
 const {
   TemplateController,
 } = require("./src/controllers/TemplateController");
+const { AiController } = require("./src/controllers/AiController");
 const {
   SettingsController,
 } = require("./src/controllers/SettingsController");
@@ -125,6 +146,7 @@ let currentSettings = null;
 let authController = null;
 let uploadController = null;
 let templateController = null;
+let aiController = null;
 let settingsController = null;
 let playlistController = null;
 let thumbnailController = null;
@@ -179,6 +201,31 @@ function buildContainer() {
   templateController = new TemplateController({
     listTemplatesUseCase: new ListTemplatesUseCase({ templateStore }),
     saveTemplatesUseCase: new SaveTemplatesUseCase({ templateStore }),
+  });
+
+  const aiCipher = {
+    isAvailable: () => safeStorage.isEncryptionAvailable(),
+    encrypt: (value) => safeStorage.encryptString(value).toString("base64"),
+    decrypt: (value) =>
+      safeStorage.decryptString(Buffer.from(value, "base64")),
+  };
+  const aiConfigStore = new AiConfigStore({
+    filePath: path.join(app.getPath("userData"), "ai-config.json"),
+    cipher: aiCipher,
+  });
+  const deepInfraService = new DeepInfraService({
+    getApiKey: () => aiConfigStore.getApiKey(),
+  });
+
+  aiController = new AiController({
+    getAiConfigUseCase: new GetAiConfigUseCase({ aiConfigStore }),
+    saveAiConfigUseCase: new SaveAiConfigUseCase({ aiConfigStore }),
+    listAiModelsUseCase: new ListAiModelsUseCase({ deepInfraService }),
+    generateDescriptionUseCase: new GenerateDescriptionUseCase({
+      aiConfigStore,
+      deepInfraService,
+    }),
+    getChannelInfoUseCase: new GetChannelInfoUseCase({ youtubeService }),
   });
 
   settingsController = new SettingsController({
@@ -707,6 +754,17 @@ function registerIpc() {
   ipcMain.handle("templates:save", (_event, templates) =>
     templateController.save(templates)
   );
+
+  ipcMain.handle("ai:getConfig", () => aiController.getConfig());
+  ipcMain.handle("ai:saveConfig", (_event, changes) =>
+    aiController.saveConfig(changes)
+  );
+  ipcMain.handle("ai:listModels", () => aiController.listModels());
+  ipcMain.handle("ai:generateDescription", (_event, payload) =>
+    aiController.generate(payload)
+  );
+  ipcMain.handle("ai:test", () => aiController.listModels());
+  ipcMain.handle("ai:channelInfo", () => aiController.channelInfo());
 
   ipcMain.handle("app:info", () => ({
     name: "OhMyChannel",

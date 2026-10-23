@@ -77,6 +77,22 @@ const els = {
   updateDot: document.getElementById("updateDot"),
   updateProgress: document.getElementById("updateProgress"),
   updatePopover: document.getElementById("updatePopover"),
+  aiProvider: document.getElementById("aiProvider"),
+  aiApiKey: document.getElementById("aiApiKey"),
+  aiKeyState: document.getElementById("aiKeyState"),
+  aiClearKey: document.getElementById("aiClearKey"),
+  aiModel: document.getElementById("aiModel"),
+  aiModelSelect: document.getElementById("aiModelSelect"),
+  aiModelHint: document.getElementById("aiModelHint"),
+  aiChannelName: document.getElementById("aiChannelName"),
+  aiChannelUrl: document.getElementById("aiChannelUrl"),
+  aiDetectChannel: document.getElementById("aiDetectChannel"),
+  aiTemplate: document.getElementById("aiTemplate"),
+  aiSave: document.getElementById("aiSave"),
+  aiLoadModels: document.getElementById("aiLoadModels"),
+  aiTest: document.getElementById("aiTest"),
+  aiResetTemplate: document.getElementById("aiResetTemplate"),
+  aiStatus: document.getElementById("aiStatus"),
 };
 
 const t = (key, params) => window.i18n.t(key, params);
@@ -99,6 +115,19 @@ let editingIntroId = null;
 let introPath = null;
 let introPreviewTimers = [];
 let settings = { theme: "dark", background: true, maxParallel: 4 };
+let aiConfig = {
+  provider: "deepinfra",
+  model: "",
+  channelUrl: "",
+  channelName: "",
+  template: "",
+  hasApiKey: false,
+  encryptionAvailable: true,
+  defaultTemplate: "",
+  variables: [],
+};
+let aiModels = [];
+let aiChannel = null;
 let idSeed = 0;
 
 function genId() {
@@ -257,6 +286,7 @@ function serializeNode(node) {
   }
   if (node.nodeName === "BR") return "\n";
   if (node.nodeType === Node.ELEMENT_NODE) {
+    if (node.classList.contains("ai-cmd")) return "";
     if (isCommandWidget(node)) {
       const tpl = findTemplate(node.dataset.template);
       if (!tpl) return "";
@@ -264,6 +294,9 @@ function serializeNode(node) {
         (chip) => chip.textContent
       );
       return expandTemplate(tpl, values);
+    }
+    if (node.classList.contains("var")) {
+      return node.__resolve ? String(node.__resolve() || "") : "";
     }
     return Array.from(node.childNodes).map(serializeNode).join("");
   }
@@ -278,31 +311,6 @@ function toIsoOrNull(value) {
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
-}
-
-function createCommandWidget(tpl) {
-  const widget = document.createElement("span");
-  widget.className = "cmd";
-  widget.contentEditable = "false";
-  widget.dataset.template = tpl.name;
-
-  const name = document.createElement("span");
-  name.className = "cmd-name";
-  name.textContent = "/template " + tpl.name;
-  widget.appendChild(name);
-
-  tpl.params.forEach((param, index) => {
-    const chip = document.createElement("span");
-    chip.className = "chip";
-    chip.contentEditable = "true";
-    chip.spellcheck = false;
-    chip.dataset.param = param;
-    chip.dataset.index = String(index);
-    chip.dataset.placeholder = param;
-    widget.appendChild(chip);
-  });
-
-  return widget;
 }
 
 async function loadTemplates() {
@@ -356,6 +364,7 @@ function applyThumbnail(item, path) {
     ? path.split(/[\\/]/).pop()
     : "No image";
   item.dom.thumbnailClear.classList.toggle("hidden", !path);
+  if (item.refreshVariables) item.refreshVariables();
 }
 
 function fillThumbTemplateSelect(select) {
@@ -518,393 +527,6 @@ async function updateItemThumbPreview(item) {
   } catch {
     img.classList.add("hidden");
   }
-}
-
-/* ---------- Command-aware field ---------- */
-
-function createCommandField({ input, menu, preview, onChange }) {
-  let menuItems = [];
-  let menuIndex = 0;
-
-  const selectionRange = () => {
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return null;
-    const range = sel.getRangeAt(0);
-    if (!input.contains(range.startContainer)) return null;
-    return range;
-  };
-
-  const nodeFromCaret = () => {
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return null;
-    let node = sel.getRangeAt(0).startContainer;
-    if (node.nodeType === Node.TEXT_NODE) node = node.parentNode;
-    return node;
-  };
-
-  const chipFromCaret = () => {
-    const node = nodeFromCaret();
-    return node && node.closest ? node.closest(".chip") : null;
-  };
-
-  const widgetFromCaret = () => {
-    const node = nodeFromCaret();
-    return node && node.closest ? node.closest(".cmd") : null;
-  };
-
-  const setCaret = (container, offset) => {
-    input.focus();
-    const range = document.createRange();
-    range.setStart(container, offset);
-    range.collapse(true);
-    const sel = window.getSelection();
-    sel.removeAllRanges();
-    sel.addRange(range);
-  };
-
-  const caretBefore = (node) => {
-    const parent = node.parentNode;
-    const prev = node.previousSibling;
-    if (prev && prev.nodeType === Node.TEXT_NODE) {
-      setCaret(prev, prev.textContent.length);
-      return;
-    }
-    setCaret(parent, Array.prototype.indexOf.call(parent.childNodes, node));
-  };
-
-  const caretAfter = (node) => {
-    const parent = node.parentNode;
-    const next = node.nextSibling;
-    if (next && next.nodeType === Node.TEXT_NODE) {
-      setCaret(next, 0);
-      return;
-    }
-    setCaret(parent, Array.prototype.indexOf.call(parent.childNodes, node) + 1);
-  };
-
-  const caretIn = (node, atEnd, focusEl) => {
-    (focusEl || input).focus();
-    const range = document.createRange();
-    range.selectNodeContents(node);
-    range.collapse(!atEnd);
-    const sel = window.getSelection();
-    sel.removeAllRanges();
-    sel.addRange(range);
-  };
-
-  function lineTextBeforeCaret() {
-    if (widgetFromCaret()) return "";
-    const range = selectionRange();
-    if (!range) return "";
-    const start = range.startContainer;
-    if (start.nodeType !== Node.TEXT_NODE) return "";
-    let text = start.textContent.slice(0, range.startOffset);
-    let node = start;
-    while (node && node !== input) {
-      let prev = node.previousSibling;
-      while (prev) {
-        if (prev.nodeName === "BR") return text;
-        if (isCommandWidget(prev)) return "";
-        text = nodeText(prev) + text;
-        if (text.includes("\n")) return text;
-        prev = prev.previousSibling;
-      }
-      node = node.parentNode;
-    }
-    return text;
-  }
-
-  function hideMenu() {
-    menuItems = [];
-    menuIndex = 0;
-    menu.classList.add("hidden");
-    menu.innerHTML = "";
-  }
-
-  function showMenu(menuList) {
-    if (!menuList.length) {
-      hideMenu();
-      return;
-    }
-    menuItems = menuList;
-    if (menuIndex >= menuList.length) menuIndex = 0;
-    menu.innerHTML = "";
-    menuList.forEach((item, i) => {
-      const row = document.createElement("div");
-      row.className = "cmd-item" + (i === menuIndex ? " active" : "");
-      const left = document.createElement("span");
-      left.innerHTML = item.icon
-        ? `<span class="cmd-icon">${item.icon}</span>${escapeHtml(item.label)}`
-        : escapeHtml(item.label);
-      const right = document.createElement("span");
-      right.className = "hint";
-      right.textContent = item.hint || "";
-      row.appendChild(left);
-      row.appendChild(right);
-      row.addEventListener("mousedown", (e) => {
-        e.preventDefault();
-        item.apply();
-      });
-      menu.appendChild(row);
-    });
-    menu.classList.remove("hidden");
-  }
-
-  function selectActive() {
-    if (menuItems.length) menuItems[menuIndex].apply();
-  }
-
-  function replaceLineTextWith(segment, text) {
-    const range = selectionRange();
-    if (!range || range.startContainer.nodeType !== Node.TEXT_NODE) return;
-    const node = range.startContainer;
-    const from = Math.max(0, range.startOffset - segment.length);
-    const r = document.createRange();
-    r.setStart(node, from);
-    r.setEnd(node, range.startOffset);
-    r.deleteContents();
-    const next = document.createTextNode(text);
-    r.insertNode(next);
-    setCaret(next, next.length);
-  }
-
-  function insertTemplate(tpl) {
-    const range = selectionRange();
-    if (!range || range.startContainer.nodeType !== Node.TEXT_NODE) return;
-    const node = range.startContainer;
-    const segment = lineTextBeforeCaret();
-    const from = Math.max(0, range.startOffset - segment.length);
-    const r = document.createRange();
-    r.setStart(node, from);
-    r.setEnd(node, range.startOffset);
-    r.deleteContents();
-
-    hideMenu();
-
-    if (!tpl.params.length) {
-      const textNode = document.createTextNode(expandTemplate(tpl, []));
-      r.insertNode(textNode);
-      setCaret(textNode, textNode.length);
-    } else {
-      const widget = createCommandWidget(tpl);
-      r.insertNode(widget);
-      const spacer = document.createTextNode("\u200B");
-      widget.parentNode.insertBefore(spacer, widget.nextSibling);
-      focusChip(widget.querySelector(".chip"), false);
-    }
-
-    updatePreview();
-    onChange();
-  }
-
-  function focusChip(chip, atEnd) {
-    if (!chip) return;
-    caretIn(chip, atEnd, chip);
-    updatePreview();
-  }
-
-  function updateMenu() {
-    const segment = lineTextBeforeCaret();
-    if (!segment.startsWith("/")) {
-      hideMenu();
-      return;
-    }
-    const tokens = segment.split(" ");
-    const command = tokens[0];
-
-    if (tokens.length === 1) {
-      const query = command.slice(1).toLowerCase();
-      const commands = [
-        { name: "template", hint: t("command.templateHint") },
-      ].filter((c) => c.name.startsWith(query));
-      showMenu(
-        commands.map((c) => ({
-          icon: "/",
-          label: c.name,
-          hint: c.hint,
-          apply: () => {
-            replaceLineTextWith(segment, "/template ");
-            updateMenu();
-            updatePreview();
-            onChange();
-          },
-        }))
-      );
-      return;
-    }
-
-    if (command === "/template" && tokens.length === 2) {
-      const query = tokens[1].toLowerCase();
-      showMenu(
-        templates
-          .filter((t) => t.name.toLowerCase().startsWith(query))
-          .map((t) => ({
-            icon: "#",
-            label: t.name,
-            hint: t.pattern,
-            apply: () => insertTemplate(t),
-          }))
-      );
-      return;
-    }
-
-    hideMenu();
-  }
-
-  function updatePreview() {
-    const widget = widgetFromCaret();
-    if (!widget) {
-      preview.classList.add("hidden");
-      preview.innerHTML = "";
-      return;
-    }
-    const tpl = findTemplate(widget.dataset.template);
-    const values = Array.from(widget.querySelectorAll(".chip")).map(
-      (chip) => chip.textContent
-    );
-    preview.classList.remove("hidden");
-    if (!tpl) {
-      preview.innerHTML = "Template not found.";
-      return;
-    }
-    const missing = tpl.params.filter((_p, i) => !(values[i] || "").trim());
-    let html = `Preview: <strong>${escapeHtml(
-      expandTemplate(tpl, values)
-    )}</strong>`;
-    if (missing.length) {
-      html += ` &middot; missing: ${escapeHtml(missing.join(", "))}`;
-    }
-    preview.innerHTML = html;
-  }
-
-  function chipOffset(chip, range) {
-    if (!range || !chip.contains(range.startContainer)) return 0;
-    const pre = document.createRange();
-    pre.selectNodeContents(chip);
-    pre.setEnd(range.startContainer, range.startOffset);
-    return pre.toString().length;
-  }
-
-  function chipIsEmpty(chip) {
-    return chip.textContent.replace(/\u200B/g, "").length === 0;
-  }
-
-  function handleChipKey(event, chip) {
-    const widget = chip.closest(".cmd");
-    const chips = Array.from(widget.querySelectorAll(".chip"));
-    const index = chips.indexOf(chip);
-    const range = selectionRange();
-    const offset = chipOffset(chip, range);
-    const length = chip.textContent.length;
-    const dir = event.shiftKey ? -1 : 1;
-
-    if (event.key === "Tab" || event.key === "Enter") {
-      event.preventDefault();
-      const target = chips[index + dir];
-      if (target) focusChip(target, dir < 0);
-      else if (dir > 0) caretAfter(widget);
-      else caretBefore(widget);
-      return true;
-    }
-
-    if (event.key === "ArrowLeft" && !event.shiftKey && offset === 0) {
-      event.preventDefault();
-      const target = chips[index - 1];
-      if (target) focusChip(target, true);
-      else caretBefore(widget);
-      return true;
-    }
-
-    if (event.key === "ArrowRight" && !event.shiftKey && offset === length) {
-      event.preventDefault();
-      const target = chips[index + 1];
-      if (target) focusChip(target, false);
-      else caretAfter(widget);
-      return true;
-    }
-
-    if (event.key === "Backspace" && offset === 0 && chipIsEmpty(chip)) {
-      event.preventDefault();
-      const target = chips[index - 1];
-      if (target) focusChip(target, true);
-      else caretBefore(widget);
-      return true;
-    }
-
-    return false;
-  }
-
-  input.addEventListener("input", () => {
-    updateMenu();
-    updatePreview();
-    onChange();
-  });
-
-  input.addEventListener("keydown", (event) => {
-    const chip = chipFromCaret();
-    if (chip && handleChipKey(event, chip)) return;
-
-    const menuOpen = !menu.classList.contains("hidden");
-
-    if (event.key === "Enter") {
-      event.preventDefault();
-      if (menuOpen) {
-        selectActive();
-        return;
-      }
-      if (input.dataset.multiline === "true") {
-        document.execCommand("insertLineBreak");
-        updatePreview();
-        onChange();
-      }
-      return;
-    }
-
-    if (!menuOpen) return;
-
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      menuIndex = (menuIndex + 1) % menuItems.length;
-      showMenu(menuItems);
-    } else if (event.key === "ArrowUp") {
-      event.preventDefault();
-      menuIndex = (menuIndex - 1 + menuItems.length) % menuItems.length;
-      showMenu(menuItems);
-    } else if (event.key === "Tab") {
-      event.preventDefault();
-      selectActive();
-    } else if (event.key === "Escape") {
-      hideMenu();
-    }
-  });
-
-  input.addEventListener("paste", (event) => {
-    event.preventDefault();
-    const clipboard = event.clipboardData || window.clipboardData;
-    let text = clipboard ? clipboard.getData("text/plain") : "";
-    if (!text) return;
-    if (input.dataset.multiline !== "true") {
-      text = text.replace(/[\r\n]+/g, " ");
-    }
-    const max = Number(input.dataset.max || 0);
-    if (max) {
-      const current = serializeField(input).length;
-      text = text.slice(0, Math.max(0, max - current));
-    }
-    document.execCommand("insertText", false, text);
-    updateMenu();
-    updatePreview();
-    onChange();
-  });
-
-  input.addEventListener("beforeinput", (event) => {
-    const max = Number(input.dataset.max || 0);
-    if (!max || !event.data) return;
-    const current = serializeField(input).length;
-    if (current + event.data.length > max) event.preventDefault();
-  });
-
-  return { updateMenu, updatePreview, hideMenu };
 }
 
 /* ---------- Queue ---------- */
@@ -1180,23 +802,137 @@ function addItem(filePath) {
     pct,
   };
 
+  const getPlaylistValue = () => {
+    const playlist = playlists.find((entry) => entry.id === playlistSelect.value);
+    if (!playlist) return null;
+    return {
+      id: playlist.id,
+      title: playlist.title,
+      url: `https://www.youtube.com/playlist?list=${playlist.id}`,
+    };
+  };
+
+  const getIntroValue = () => {
+    const intro = intros.find((entry) => entry.id === introSelect.value);
+    return intro ? { name: intro.name } : null;
+  };
+
+  const getThumbnailValue = () =>
+    item.thumbnailPath
+      ? { name: item.thumbnailPath.split(/[\\/]/).pop() }
+      : null;
+
+  const getChannelValue = () => ({
+    name: aiConfig.channelName || (aiChannel ? aiChannel.name : ""),
+    url: aiConfig.channelUrl || (aiChannel ? aiChannel.url : ""),
+  });
+
+  const buildItemContext = (role) => ({
+    getTitle: () =>
+      String(titleInput.textContent || "")
+        .replace(/\u200B/g, "")
+        .trim(),
+    getFileName: () => fileName,
+    getPlaylist: getPlaylistValue,
+    getPublishDate: () => publishInput.value,
+    getIntro: getIntroValue,
+    getThumbnail: getThumbnailValue,
+    getChannel: getChannelValue,
+    checkAi: (targetRole) => {
+      const effectiveRole = targetRole || role;
+      if (!aiConfig.model) return { ok: false, error: t("ai.errorNoModel") };
+      if (!aiConfig.hasApiKey) return { ok: false, error: t("ai.errorNoKey") };
+      const template = aiConfig.template || "";
+      if (
+        effectiveRole === "description" &&
+        /\$playlist_/.test(template) &&
+        !getPlaylistValue()
+      ) {
+        return { ok: false, error: t("ai.errorPlaylist") };
+      }
+      return { ok: true };
+    },
+  });
+
+  const generateItemAi = async (brief, role) => {
+    const variables = {
+      title: String(titleInput.textContent || "")
+        .replace(/\u200B/g, "")
+        .trim(),
+      file_name: fileName,
+      playlist_name: getPlaylistValue() ? getPlaylistValue().title : "",
+      playlist_link: getPlaylistValue() ? getPlaylistValue().url : "",
+      publish_date: publishInput.value,
+      intro_name: getIntroValue() ? getIntroValue().name : "",
+      thumbnail_name: getThumbnailValue() ? getThumbnailValue().name : "",
+      channel_name: getChannelValue().name,
+      channel_link: getChannelValue().url,
+    };
+    const result = await window.api.generateDescription({
+      brief,
+      fieldRole: role,
+      variables,
+      language: settings.language || "en",
+    });
+    if (role === "description") {
+      return {
+        text: result.text,
+        richTemplate: result.template || aiConfig.template || "",
+        richValues: {
+          description: result.description || "",
+          hashtags: Array.isArray(result.hashtags)
+            ? result.hashtags.join(" ")
+            : "",
+        },
+      };
+    }
+    return result.text;
+  };
+
+  let titleCommands = null;
+  let descCommands = null;
+
   const onChange = () => {
+    if (titleCommands) titleCommands.refreshVariables();
+    if (descCommands) descCommands.refreshVariables();
     updateItemCounters(item);
     refreshItem(item);
   };
 
-  createCommandField({
+  titleCommands = window.AppCommands.attach({
     input: titleInput,
     menu: titleMenu,
     preview: titlePreview,
     onChange,
+    context: buildItemContext("title"),
+    role: "title",
+    getTemplates: () => templates,
+    generateAi: (brief) => generateItemAi(brief, "title"),
   });
-  createCommandField({
+  descCommands = window.AppCommands.attach({
     input: descInput,
     menu: descMenu,
     preview: descPreview,
     onChange,
+    context: buildItemContext("description"),
+    role: "description",
+    getTemplates: () => templates,
+    generateAi: (brief) => generateItemAi(brief, "description"),
   });
+
+  item.commands = { title: titleCommands, description: descCommands };
+  item.refreshVariables = () => {
+    titleCommands.refreshVariables();
+    descCommands.refreshVariables();
+    updateItemCounters(item);
+  };
+
+  playlistSelect.addEventListener("change", () => {
+    item.refreshVariables();
+    onChange();
+  });
+  publishInput.addEventListener("change", () => item.refreshVariables());
+  introSelect.addEventListener("change", () => item.refreshVariables());
 
   upload.addEventListener("click", () => handleItemAction(item));
   cancel.addEventListener("click", () => cancelItem(item));
@@ -1594,6 +1330,155 @@ async function addTemplate() {
 }
 
 els.tplAdd.addEventListener("click", addTemplate);
+
+/* ---------- AI settings ---------- */
+
+function setAiStatus(message, type = "") {
+  els.aiStatus.textContent = message;
+  els.aiStatus.className = "ai-status " + type;
+}
+
+function fillAiModelSelect() {
+  const current = els.aiModelSelect.value;
+  els.aiModelSelect.innerHTML = "";
+  const none = document.createElement("option");
+  none.value = "";
+  none.textContent = t("ai.modelChoose");
+  els.aiModelSelect.appendChild(none);
+  aiModels.forEach((model) => {
+    const option = document.createElement("option");
+    option.value = model;
+    option.textContent = model;
+    els.aiModelSelect.appendChild(option);
+  });
+  els.aiModelSelect.value = aiModels.includes(current) ? current : "";
+}
+
+function updateModelHint() {
+  const missing = !els.aiModel.value.trim();
+  els.aiModel.classList.toggle("invalid", missing);
+  els.aiModelSelect.classList.toggle("invalid", missing);
+  els.aiModelHint.classList.toggle("hidden", !missing);
+  const title = missing ? t("ai.modelRequired") : "";
+  els.aiModel.title = title;
+  els.aiModelSelect.title = title;
+}
+
+function renderAiForm() {
+  els.aiProvider.value = aiConfig.provider || "deepinfra";
+  els.aiModel.value = aiConfig.model || "";
+  els.aiChannelName.value = aiConfig.channelName || "";
+  els.aiChannelUrl.value = aiConfig.channelUrl || "";
+  els.aiTemplate.value = aiConfig.template || aiConfig.defaultTemplate || "";
+  els.aiKeyState.textContent = aiConfig.hasApiKey
+    ? t("ai.keyConfigured")
+    : t("ai.keyNotConfigured");
+  els.aiKeyState.className =
+    "ai-key-state " + (aiConfig.hasApiKey ? "configured" : "missing");
+  fillAiModelSelect();
+  if (aiModels.includes(aiConfig.model)) {
+    els.aiModelSelect.value = aiConfig.model;
+  }
+  updateModelHint();
+  if (!aiConfig.encryptionAvailable) {
+    setAiStatus(t("ai.encryptionUnavailable"), "error");
+  }
+}
+
+async function loadAiConfig() {
+  try {
+    aiConfig = await window.api.getAiConfig();
+  } catch {
+    /* keep defaults */
+  }
+  renderAiForm();
+}
+
+async function saveAiSettings() {
+  try {
+    const apiKey = els.aiApiKey.value.trim();
+    aiConfig = await window.api.saveAiConfig({
+      provider: els.aiProvider.value,
+      model: els.aiModel.value.trim(),
+      channelName: els.aiChannelName.value.trim(),
+      channelUrl: els.aiChannelUrl.value.trim(),
+      template: els.aiTemplate.value,
+      apiKey: apiKey || undefined,
+      clearApiKey: els.aiClearKey.checked,
+    });
+    els.aiApiKey.value = "";
+    els.aiClearKey.checked = false;
+    renderAiForm();
+    setAiStatus(t("ai.saved"), "ok");
+    return true;
+  } catch (err) {
+    setAiStatus(err.message, "error");
+    return false;
+  }
+}
+
+async function loadAiModels() {
+  try {
+    if (els.aiApiKey.value.trim()) {
+      const saved = await saveAiSettings();
+      if (!saved) return;
+    }
+    const models = await window.api.listAiModels();
+    aiModels = models;
+    fillAiModelSelect();
+    if (!els.aiModel.value.trim() && models.length) {
+      els.aiModel.value = models[0];
+      els.aiModelSelect.value = models[0];
+      updateModelHint();
+    }
+    setAiStatus(t("ai.modelsLoaded", { count: models.length }), "ok");
+  } catch (err) {
+    setAiStatus(err.message, "error");
+  }
+}
+
+async function testAiConnection() {
+  try {
+    if (els.aiApiKey.value.trim()) {
+      const saved = await saveAiSettings();
+      if (!saved) return;
+    }
+    await window.api.testAi();
+    setAiStatus(t("ai.testSuccess"), "ok");
+  } catch (err) {
+    setAiStatus(t("ai.testFailed", { message: err.message }), "error");
+  }
+}
+
+async function detectAiChannel() {
+  try {
+    aiChannel = await window.api.getChannelInfo();
+    els.aiChannelName.value = aiChannel.name || "";
+    els.aiChannelUrl.value = aiChannel.url || "";
+    setAiStatus(t("ai.channelDetected"), "ok");
+  } catch (err) {
+    setAiStatus(t("ai.channelFailed", { message: err.message }), "error");
+  }
+}
+
+els.aiSave.addEventListener("click", saveAiSettings);
+els.aiLoadModels.addEventListener("click", loadAiModels);
+els.aiTest.addEventListener("click", testAiConnection);
+els.aiDetectChannel.addEventListener("click", detectAiChannel);
+els.aiModel.addEventListener("input", () => {
+  if (els.aiModelSelect.value !== els.aiModel.value) {
+    els.aiModelSelect.value = "";
+  }
+  updateModelHint();
+});
+els.aiModelSelect.addEventListener("change", () => {
+  if (!els.aiModelSelect.value) return;
+  els.aiModel.value = els.aiModelSelect.value;
+  updateModelHint();
+});
+els.aiResetTemplate.addEventListener("click", () => {
+  els.aiTemplate.value = aiConfig.defaultTemplate || "";
+});
 
 /* ---------- Thumbnail templates ---------- */
 
@@ -2883,6 +2768,56 @@ window.api.onRenderProgress(({ id, percent }) => {
 
 /* ---------- Init ---------- */
 
+function setUpStaticCommands() {
+  const channel = () => ({
+    name: aiConfig.channelName || (aiChannel ? aiChannel.name : ""),
+    url: aiConfig.channelUrl || (aiChannel ? aiChannel.url : ""),
+  });
+  const context = {
+    getChannel: channel,
+    checkAi: () => {
+      if (!aiConfig.model) return { ok: false, error: t("ai.errorNoModel") };
+      if (!aiConfig.hasApiKey) return { ok: false, error: t("ai.errorNoKey") };
+      return { ok: true };
+    },
+  };
+  const generate = async (brief, target) => {
+    const result = await window.api.generateDescription({
+      brief,
+      fieldRole: target || "field",
+      variables: {
+        channel_name: channel().name,
+        channel_link: channel().url,
+      },
+      language: settings.language || "en",
+    });
+    return result.text;
+  };
+
+  document
+    .querySelectorAll('input[type="text"], textarea')
+    .forEach((input) => {
+      if (input.id === "aiApiKey" || input.id === "aiTemplate") return;
+      if (input.disabled || input.readOnly) return;
+      window.AppCommands.attach({
+        input,
+        role: "other",
+        context,
+        getTemplates: () => templates,
+        generateAi: generate,
+      });
+    });
+  if (els.aiTemplate) {
+    window.AppCommands.attach({
+      input: els.aiTemplate,
+      role: "template",
+      context,
+      getTemplates: () => templates,
+      generateAi: generate,
+    });
+  }
+}
+
 async function init() {
   try {
     settings = await window.api.getSettings();
@@ -2901,6 +2836,8 @@ async function init() {
   renderSettingsForm();
   await loadTemplates();
   renderTemplateList();
+  await loadAiConfig();
+  setUpStaticCommands();
   await loadThumbnailFonts();
   await loadThumbnailTemplates();
   resetEditor();
@@ -2908,6 +2845,13 @@ async function init() {
   await loadConfigInfo();
   await loadUpdateState();
   await refreshAuth();
+  try {
+    aiChannel = await window.api.getChannelInfo();
+    if (!aiConfig.channelName) els.aiChannelName.value = aiChannel.name || "";
+    if (!aiConfig.channelUrl) els.aiChannelUrl.value = aiChannel.url || "";
+  } catch {
+    aiChannel = null;
+  }
   await loadPlaylists();
   refreshQueueInfo();
 }

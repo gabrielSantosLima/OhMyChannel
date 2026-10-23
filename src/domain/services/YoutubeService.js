@@ -102,6 +102,28 @@ class YoutubeService {
     });
   }
 
+  async getMyChannel() {
+    if (!this.tokenStore.load()) throw new Error("Not authenticated.");
+    const youtube = google.youtube({ version: "v3", auth: this.createClient() });
+    const response = await youtube.channels.list({
+      part: ["snippet"],
+      mine: true,
+    });
+    const channel = response.data.items && response.data.items[0];
+    if (!channel) throw new Error("Channel not found.");
+    const customUrl = channel.snippet ? channel.snippet.customUrl || "" : "";
+    const url = customUrl
+      ? customUrl.startsWith("http")
+        ? customUrl
+        : `https://www.youtube.com/${customUrl.replace(/^\/+/, "")}`
+      : `https://www.youtube.com/channel/${channel.id}`;
+    return {
+      id: channel.id,
+      name: channel.snippet ? channel.snippet.title || "" : "",
+      url,
+    };
+  }
+
   async upload({ metadata, filePath, onProgress, registerAbort }) {
     if (!this.tokenStore.load()) throw new Error("Not authenticated.");
     if (!fs.existsSync(filePath)) throw new Error("File not found.");

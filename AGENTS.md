@@ -154,6 +154,23 @@ system tray, notifications and IPC registration.
 - Expansion of the command into final text happens in the renderer for live
   preview, and the expanded values are sent to the backend on upload.
 
+## AI descriptions and form variables
+
+- AI settings live in `AiConfig` / `AiConfigStore` (API key encrypted with
+  Electron `safeStorage`).
+- `DeepInfraService` talks to the DeepInfra OpenAI-compatible API.
+- `GenerateDescriptionUseCase` builds the prompt and returns the generated
+  description, hashtags and the template used.
+- The renderer command engine lives in `renderer/commands.js` and the predefined
+  variable registry in `renderer/variables.js`. Both `/` commands and `$`
+  variables share the same suggestion menu.
+- The AI command is `/generate title prompt: ...` or
+  `/generate description prompt: ...`; it renders as an inline widget with an
+  editable prompt chip.
+- Variables such as `$title`, `$playlist_name` and `$playlist_link` resolve from
+  the upload card that contains them. The AI template also supports
+  `$description` and `$hashtags`.
+
 ## Running
 
 ```bash
