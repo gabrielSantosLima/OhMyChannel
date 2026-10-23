@@ -293,6 +293,8 @@
       "settings.background.title": "Run in background",
       "settings.background.desc":
         "When enabled, closing the window keeps the app running in the system tray.",
+      "settings.startMaximized.title": "Start maximized",
+      "settings.startMaximized.desc": "Open the app window maximized.",
       "settings.parallelUploads.title": "Parallel uploads",
       "settings.parallelUploads.desc":
         "Maximum number of videos uploaded at the same time.",
@@ -625,6 +627,8 @@
       "settings.background.title": "Executar em segundo plano",
       "settings.background.desc":
         "Quando ativado, fechar a janela mantém o app rodando na bandeja do sistema.",
+      "settings.startMaximized.title": "Iniciar maximizado",
+      "settings.startMaximized.desc": "Abrir a janela do app maximizada.",
       "settings.parallelUploads.title": "Envios em paralelo",
       "settings.parallelUploads.desc":
         "Número máximo de vídeos enviados ao mesmo tempo.",

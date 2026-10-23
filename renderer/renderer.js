@@ -13,6 +13,7 @@ const els = {
   message: document.getElementById("message"),
   themeSegmented: document.getElementById("themeSegmented"),
   bgToggle: document.getElementById("bgToggle"),
+  startMaximizedToggle: document.getElementById("startMaximizedToggle"),
   parallelInput: document.getElementById("parallelInput"),
   renderParallelInput: document.getElementById("renderParallelInput"),
   renderResolutionSelect: document.getElementById("renderResolutionSelect"),
@@ -114,7 +115,12 @@ let intros = [];
 let editingIntroId = null;
 let introPath = null;
 let introPreviewTimers = [];
-let settings = { theme: "dark", background: true, maxParallel: 4 };
+let settings = {
+  theme: "dark",
+  background: true,
+  startMaximized: true,
+  maxParallel: 4,
+};
 let aiConfig = {
   provider: "deepinfra",
   model: "",
@@ -188,6 +194,7 @@ function renderSettingsForm() {
     btn.classList.toggle("active", btn.dataset.theme === settings.theme)
   );
   els.bgToggle.checked = !!settings.background;
+  els.startMaximizedToggle.checked = !!settings.startMaximized;
   els.parallelInput.value = settings.maxParallel;
   els.renderParallelInput.value = settings.maxParallelRenders;
   els.renderResolutionSelect.value = settings.renderResolution;
@@ -211,6 +218,10 @@ themeButtons.forEach((btn) =>
 
 els.bgToggle.addEventListener("change", () =>
   persistSettings({ background: els.bgToggle.checked })
+);
+
+els.startMaximizedToggle.addEventListener("change", () =>
+  persistSettings({ startMaximized: els.startMaximizedToggle.checked })
 );
 
 els.parallelInput.addEventListener("change", () =>

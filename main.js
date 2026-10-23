@@ -302,6 +302,10 @@ function createWindow() {
   });
   mainWindow.setMenuBarVisibility(false);
 
+  if (!currentSettings || currentSettings.startMaximized) {
+    mainWindow.maximize();
+  }
+
   mainWindow.once("ready-to-show", () => {
     mainWindow.show();
   });

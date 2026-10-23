@@ -4,6 +4,7 @@ const LANGUAGES = ["en", "pt-BR"];
 const DEFAULTS = {
   theme: "dark",
   background: true,
+  startMaximized: true,
   maxParallel: 4,
   sidebarCollapsed: false,
   autoSubmitAfterRender: true,
@@ -21,6 +22,7 @@ class AppSettings {
   constructor({
     theme,
     background,
+    startMaximized,
     maxParallel,
     sidebarCollapsed,
     autoSubmitAfterRender,
@@ -33,6 +35,7 @@ class AppSettings {
   }) {
     this.theme = theme;
     this.background = background;
+    this.startMaximized = startMaximized;
     this.maxParallel = maxParallel;
     this.sidebarCollapsed = sidebarCollapsed;
     this.autoSubmitAfterRender = autoSubmitAfterRender;
@@ -70,6 +73,7 @@ class AppSettings {
     return new AppSettings({
       theme,
       background,
+      startMaximized: bool(input.startMaximized, DEFAULTS.startMaximized),
       maxParallel: clampParallel(input.maxParallel, DEFAULTS.maxParallel),
       sidebarCollapsed: !!input.sidebarCollapsed,
       autoSubmitAfterRender,
