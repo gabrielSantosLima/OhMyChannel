@@ -16,6 +16,7 @@ files:
   - "!scripts/**"
   - "!tmp-thumbs/**"
   - "!dist/**"
+  - "!dist-beta/**"
   - "!**/*.map"
   - "!**/*.log"
 asarUnpack:

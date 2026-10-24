@@ -1,5 +1,6 @@
 node_modules/
 dist/
+dist-beta/
 client_secrets.json
 token.json
 *.log

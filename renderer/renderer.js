@@ -1,5 +1,7 @@
 const els = {
   app: document.querySelector(".app"),
+  appLogo: document.getElementById("appLogo"),
+  aboutLogo: document.getElementById("aboutLogo"),
   authStatus: document.getElementById("authStatus"),
   loginBtn: document.getElementById("loginBtn"),
   logoutBtn: document.getElementById("logoutBtn"),
@@ -10,7 +12,6 @@ const els = {
   emptyQueue: document.getElementById("emptyQueue"),
   viewUploads: document.getElementById("view-uploads"),
   uploadGate: document.getElementById("uploadGate"),
-  message: document.getElementById("message"),
   themeSegmented: document.getElementById("themeSegmented"),
   bgToggle: document.getElementById("bgToggle"),
   startMaximizedToggle: document.getElementById("startMaximizedToggle"),
@@ -157,8 +158,9 @@ function escapeHtml(value) {
 }
 
 function setMessage(text, type = "") {
-  els.message.textContent = text;
-  els.message.className = "message " + type;
+  if (!text) return;
+  const kind = type === "ok" ? "success" : type === "error" ? "error" : "info";
+  window.notify(text, { type: kind });
 }
 
 /* ---------- Generic confirmation modal ---------- */
@@ -2917,6 +2919,11 @@ async function init() {
   try {
     const info = await window.api.getAppInfo();
     els.aboutVersion.textContent = info.version;
+    if (info.icon) {
+      const iconUrl = "../assets/" + info.icon;
+      els.appLogo.src = iconUrl;
+      els.aboutLogo.src = iconUrl;
+    }
   } catch {
     /* ignore */
   }

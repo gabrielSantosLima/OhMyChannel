@@ -12,6 +12,45 @@ const {
 } = require("electron");
 const path = require("path");
 const fs = require("fs");
+const appPackage = require("./package.json");
+
+const CHANNELS = {
+  development: {
+    name: "OhMyChannel Dev",
+    appUserModelId: "OhMyChannel.Dev",
+    userData: "OhMyChannel-dev",
+    icon: "icon-dev.png",
+    ico: "icon-dev.ico",
+  },
+  beta: {
+    name: "OhMyChannel Beta",
+    appUserModelId: "OhMyChannel.Beta",
+    userData: "OhMyChannel-beta",
+    icon: "icon-beta.png",
+    ico: "icon-beta.ico",
+  },
+  production: {
+    name: "OhMyChannel",
+    appUserModelId: "OhMyChannel",
+    userData: "OhMyChannel",
+    icon: "icon.png",
+    ico: "icon.ico",
+  },
+};
+
+const requestedChannel = process.env.OHMYCHANNEL_CHANNEL;
+const APP_CHANNEL =
+  requestedChannel && CHANNELS[requestedChannel]
+    ? requestedChannel
+    : !app.isPackaged
+      ? "development"
+      : appPackage.channel === "beta"
+        ? "beta"
+        : "production";
+const channelConfig = CHANNELS[APP_CHANNEL];
+
+app.setName(channelConfig.name);
+app.setPath("userData", path.join(app.getPath("appData"), channelConfig.userData));
 
 const { YoutubeService } = require("./src/domain/services/YoutubeService");
 const { TokenStore } = require("./src/domain/services/TokenStore");
@@ -139,8 +178,8 @@ const SCOPES = [
 ];
 const FONTS_DIR = path.join(__dirname, "assets", "fonts");
 const SECRETS_PATH = path.join(__dirname, "client_secrets.json");
-const ICON_PATH = path.join(__dirname, "assets", "icon.png");
-const ICO_PATH = path.join(__dirname, "assets", "icon.ico");
+const ICON_PATH = path.join(__dirname, "assets", channelConfig.icon);
+const ICO_PATH = path.join(__dirname, "assets", channelConfig.ico);
 
 let mainWindow = null;
 let tray = null;
@@ -297,7 +336,7 @@ function createWindow() {
     minWidth: 760,
     minHeight: 560,
     show: false,
-    title: "OhMyChannel",
+    title: app.getName(),
     icon: ICO_PATH,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -372,7 +411,7 @@ function updateTray() {
     ? tr("tray.uploading", { count, percent })
     : tr("tray.noUpload");
 
-  tray.setToolTip(count ? `OhMyChannel - ${statusLabel}` : "OhMyChannel");
+  tray.setToolTip(count ? `${app.getName()} - ${statusLabel}` : app.getName());
 
   const items = [
     { label: tr("tray.open"), click: showWindow },
@@ -422,7 +461,7 @@ function quitApp() {
 function createTray() {
   const image = nativeImage.createFromPath(ICON_PATH);
   tray = new Tray(image.resize({ width: 16, height: 16 }));
-  tray.setToolTip("OhMyChannel");
+  tray.setToolTip(app.getName());
   tray.on("click", showWindow);
   tray.on("double-click", showWindow);
   updateTray();
@@ -580,6 +619,7 @@ let updateState = {
 let updateTimer = null;
 
 function updaterSupported() {
+  if (APP_CHANNEL !== "production") return false;
   if (!app.isPackaged) return false;
   if (process.platform === "win32") return !process.env.PORTABLE_EXECUTABLE_DIR;
   if (process.platform === "linux") return !!process.env.APPIMAGE;
@@ -655,6 +695,7 @@ async function checkGithubLatest() {
 }
 
 async function runUpdateCheck() {
+  if (APP_CHANNEL !== "production") return;
   if (updaterSupported()) {
     try {
       await autoUpdater.checkForUpdates();
@@ -669,7 +710,7 @@ async function runUpdateCheck() {
 function setupUpdater() {
   const supported = updaterSupported();
   updateState = { ...updateState, manual: !supported };
-  if (!app.isPackaged) return;
+  if (!app.isPackaged || APP_CHANNEL !== "production") return;
 
   if (supported) {
     applyUpdaterSettings();
@@ -739,8 +780,10 @@ function registerIpc() {
   ipcMain.handle("ai:channelInfo", () => aiController.channelInfo());
 
   ipcMain.handle("app:info", () => ({
-    name: "OhMyChannel",
+    name: app.getName(),
     version: app.getVersion(),
+    channel: APP_CHANNEL,
+    icon: channelConfig.icon,
   }));
 
   ipcMain.handle("config:info", () => ({
@@ -884,7 +927,7 @@ if (!gotTheLock) {
   });
 
   app.whenReady().then(() => {
-    app.setAppUserModelId("OhMyChannel");
+    app.setAppUserModelId(channelConfig.appUserModelId);
     buildContainer();
     registerIpc();
     createWindow();

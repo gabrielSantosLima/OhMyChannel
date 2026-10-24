@@ -6,7 +6,9 @@
   "scripts": {
     "start": "electron .",
     "dev": "electronmon .",
+    "dev:beta": "node scripts/dev.js beta",
     "dist": "electron-builder",
+    "dist:beta": "electron-builder --config electron-builder.beta.yml",
     "dist:win": "electron-builder --win",
     "dist:linux": "electron-builder --linux"
   },

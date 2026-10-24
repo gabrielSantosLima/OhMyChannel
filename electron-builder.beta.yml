@@ -1,0 +1,11 @@
+extends: ./electron-builder.yml
+appId: com.ohmychannel.app.beta
+productName: OhMyChannel Beta
+directories:
+  output: dist-beta
+extraMetadata:
+  channel: beta
+win:
+  icon: assets/icon-beta.ico
+linux:
+  icon: assets/icon-beta.png

@@ -23,7 +23,7 @@
           </svg>
         </button>
         <div class="sidebar-brand">
-          <img class="logo" src="../assets/icon.png" alt="OhMyChannel" />
+          <img id="appLogo" class="logo" src="../assets/icon.png" alt="OhMyChannel" />
           <span>OhMyChannel</span>
         </div>
 
@@ -143,7 +143,6 @@
             No videos in the queue. Click "Add videos" to select one or more
             files, or drag and drop them here.
           </div>
-          <p id="message" class="message"></p>
           <div id="uploadGate" class="upload-gate hidden"></div>
         </section>
 
@@ -646,7 +645,7 @@
         <section id="view-about" class="view">
           <h2 data-i18n="about.title">About</h2>
           <div class="about">
-            <img class="about-logo" src="../assets/icon.png" alt="OhMyChannel" />
+            <img id="aboutLogo" class="about-logo" src="../assets/icon.png" alt="OhMyChannel" />
             <div class="about-name">OhMyChannel</div>
             <div class="about-version">
               <span data-i18n="about.version">Version</span>
@@ -682,6 +681,7 @@
     </div>
 
     <script src="i18n.js"></script>
+    <script src="notifications.js"></script>
     <script src="variables.js"></script>
     <script src="commands.js"></script>
     <script src="renderer.js"></script>
