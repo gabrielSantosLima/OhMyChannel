@@ -101,8 +101,13 @@ const {
 } = require("./src/domain/services/ThumbnailTemplateStore");
 const { IntroStore } = require("./src/domain/services/IntroStore");
 const { VideoRenderer } = require("./src/domain/services/VideoRenderer");
-const ffmpegPath = require("ffmpeg-static");
-const ffprobePath = require("ffprobe-static").path;
+function resolveBinaryPath(binaryPath) {
+  if (!binaryPath) return binaryPath;
+  return binaryPath.replace("app.asar", "app.asar.unpacked");
+}
+
+const ffmpegPath = resolveBinaryPath(require("ffmpeg-static"));
+const ffprobePath = resolveBinaryPath(require("ffprobe-static").path);
 const { autoUpdater } = require("electron-updater");
 const { translate } = require("./src/messages");
 
