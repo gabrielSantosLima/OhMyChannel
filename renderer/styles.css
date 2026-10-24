@@ -2045,3 +2045,9 @@ button.link {
     animation: none;
   }
 }
+
+.thumb-context-dismiss {
+  position: fixed;
+  inset: 0;
+  z-index: 59;
+}
