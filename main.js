@@ -337,6 +337,7 @@ function createWindow() {
     minWidth: 760,
     minHeight: 560,
     show: false,
+    backgroundColor: "#121212",
     title: app.getName(),
     icon: ICO_PATH,
     webPreferences: {

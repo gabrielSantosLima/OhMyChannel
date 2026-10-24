@@ -52,6 +52,70 @@ body {
   transition: background 0.2s, color 0.2s;
 }
 
+/* ---------- Loading screen ---------- */
+
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background:
+    radial-gradient(circle at 50% 42%, var(--accent-soft), transparent 42%),
+    var(--bg);
+  transition: opacity 0.35s ease;
+}
+
+.loading-screen.done {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-logo {
+  width: 104px;
+  height: 104px;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 28px var(--shadow));
+  animation: loading-pulse 2.2s ease-in-out infinite;
+}
+
+.loading-spinner {
+  width: 38px;
+  height: 38px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: loading-spin 0.8s linear infinite;
+}
+
+.loading-status {
+  margin: 0;
+  min-height: 18px;
+  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: 0.2px;
+  text-align: center;
+}
+
+@keyframes loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes loading-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+
 /* ---------- Layout ---------- */
 
 .app {
@@ -1973,6 +2037,11 @@ button.link {
   }
 
   .notification-progress {
+    animation: none;
+  }
+
+  .loading-logo,
+  .loading-spinner {
     animation: none;
   }
 }

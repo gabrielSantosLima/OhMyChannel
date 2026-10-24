@@ -2,6 +2,9 @@ const els = {
   app: document.querySelector(".app"),
   appLogo: document.getElementById("appLogo"),
   aboutLogo: document.getElementById("aboutLogo"),
+  loadingScreen: document.getElementById("loadingScreen"),
+  loadingLogo: document.getElementById("loadingLogo"),
+  loadingStatus: document.getElementById("loadingStatus"),
   authStatus: document.getElementById("authStatus"),
   loginBtn: document.getElementById("loginBtn"),
   logoutBtn: document.getElementById("logoutBtn"),
@@ -161,6 +164,21 @@ function setMessage(text, type = "") {
   if (!text) return;
   const kind = type === "ok" ? "success" : type === "error" ? "error" : "info";
   window.notify(text, { type: kind });
+}
+
+function setLoadingStatus(key) {
+  if (els.loadingStatus) els.loadingStatus.textContent = t(key);
+}
+
+function hideLoadingScreen() {
+  if (!els.loadingScreen) return;
+  els.loadingScreen.classList.add("done");
+  window.setTimeout(() => {
+    if (els.loadingScreen) {
+      els.loadingScreen.remove();
+      els.loadingScreen = null;
+    }
+  }, 350);
 }
 
 async function copyDescriptionText(item) {
@@ -2934,6 +2952,7 @@ function setUpStaticCommands() {
 }
 
 async function init() {
+  setLoadingStatus("loading.starting");
   try {
     settings = await window.api.getSettings();
   } catch {
@@ -2941,6 +2960,7 @@ async function init() {
   }
   window.i18n.setLocale(settings.language || "en");
   window.i18n.apply();
+  setLoadingStatus("loading.preparing");
   try {
     const info = await window.api.getAppInfo();
     els.aboutVersion.textContent = info.version;
@@ -2948,12 +2968,14 @@ async function init() {
       const iconUrl = "../assets/" + info.icon;
       els.appLogo.src = iconUrl;
       els.aboutLogo.src = iconUrl;
+      els.loadingLogo.src = iconUrl;
     }
   } catch {
     /* ignore */
   }
   applyTheme(settings.theme);
   renderSettingsForm();
+  setLoadingStatus("loading.library");
   await loadTemplates();
   renderTemplateList();
   await loadAiConfig();
@@ -2962,6 +2984,7 @@ async function init() {
   await loadThumbnailTemplates();
   resetEditor();
   await loadIntros();
+  setLoadingStatus("loading.account");
   await loadConfigInfo();
   await loadUpdateState();
   await refreshAuth();
@@ -2973,7 +2996,15 @@ async function init() {
     aiChannel = null;
   }
   await loadPlaylists();
+  setLoadingStatus("loading.ready");
   refreshQueueInfo();
 }
 
-init();
+init()
+  .catch((err) => {
+    console.error("Initialization failed:", err);
+    setLoadingStatus("loading.error");
+  })
+  .finally(() => {
+    window.setTimeout(hideLoadingScreen, 150);
+  });

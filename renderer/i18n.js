@@ -35,6 +35,13 @@
       "nav.settings": "Settings",
       "nav.about": "About",
 
+      "loading.starting": "Starting OhMyChannel...",
+      "loading.preparing": "Preparing your workspace...",
+      "loading.account": "Checking your account...",
+      "loading.library": "Loading templates and intros...",
+      "loading.ready": "Almost ready...",
+      "loading.error": "Something went wrong. Starting anyway...",
+
       "sidebar.collapse": "Collapse menu",
       "sidebar.signIn": "Sign in with Google",
       "sidebar.signOut": "Sign out",
@@ -377,6 +384,13 @@
       "nav.setup": "Conta",
       "nav.settings": "Configurações",
       "nav.about": "Sobre",
+
+      "loading.starting": "Iniciando o OhMyChannel...",
+      "loading.preparing": "Preparando seu espaço de trabalho...",
+      "loading.account": "Verificando sua conta...",
+      "loading.library": "Carregando modelos e intros...",
+      "loading.ready": "Quase pronto...",
+      "loading.error": "Algo deu errado. Iniciando mesmo assim...",
 
       "sidebar.collapse": "Recolher menu",
       "sidebar.signIn": "Entrar com o Google",
