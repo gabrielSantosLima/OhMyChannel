@@ -43,6 +43,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build renderer
+        run: npm run build:renderer
+
       - name: Build installers
         run: npx electron-builder ${{ matrix.args }} --publish never
 

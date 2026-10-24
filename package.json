@@ -4,13 +4,15 @@
   "description": "Electron desktop app to pre-upload videos to YouTube",
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
-    "dev": "electronmon .",
+    "start": "node scripts/dev.js",
+    "dev": "node scripts/dev.js",
     "dev:beta": "node scripts/dev.js beta",
-    "dist": "electron-builder",
-    "dist:beta": "electron-builder --config electron-builder.beta.yml",
-    "dist:win": "electron-builder --win",
-    "dist:linux": "electron-builder --linux"
+    "build:renderer": "vite build",
+    "start:prod": "npm run build:renderer && electron .",
+    "dist": "npm run build:renderer && electron-builder",
+    "dist:beta": "npm run build:renderer && electron-builder --config electron-builder.beta.yml",
+    "dist:win": "npm run build:renderer && electron-builder --win",
+    "dist:linux": "npm run build:renderer && electron-builder --linux"
   },
   "author": "OhMyChannel <noreply@ohmychannel.app>",
   "license": "MIT",
@@ -23,8 +25,12 @@
     "satori": "^0.62.0"
   },
   "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.2",
     "electron": "^33.0.0",
     "electron-builder": "^26.15.3",
-    "electronmon": "^2.0.4"
+    "electronmon": "^2.0.4",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "vite": "^8.3.5"
   }
 }

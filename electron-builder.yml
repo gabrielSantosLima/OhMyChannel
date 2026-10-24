@@ -14,6 +14,8 @@ files:
   - "!docs/**"
   - "!.github/**"
   - "!scripts/**"
+  - "!renderer/**"
+  - "!vite.config.mjs"
   - "!tmp-thumbs/**"
   - "!dist/**"
   - "!dist-beta/**"
