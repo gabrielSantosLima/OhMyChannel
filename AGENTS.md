@@ -51,9 +51,19 @@ src/
     services/    External access: APIs, storage, OS integration
     useCases/    One class per use case, with an `execute` method
   controllers/   Orchestrate use cases and are called by adapters (IPC)
-renderer/         Presentation layer (plain HTML/CSS/JS)
+renderer/         React presentation layer (Vite, JavaScript)
+  src/
+    components/   Reusable UI components
+    views/        One component per screen
+    contexts/     Shared state and UI providers (settings, auth, data, queue)
+    hooks/        Reusable renderer hooks
+    lib/          API bridge, command engine integration and helpers
+  commands.js     Imperative /command and $variable engine
+  variables.js    Predefined variable registry
 main.js           Composition root (Electron lifecycle + dependency wiring)
 preload.js        Secure IPC bridge exposed to the renderer
+vite.config.mjs   Renderer dev server and production build
+dist-renderer/    Generated renderer bundle (not committed)
 ```
 
 ### `domain/entities`
@@ -166,7 +176,11 @@ system tray, notifications and IPC registration.
   description, hashtags and the template used.
 - The renderer command engine lives in `renderer/commands.js` and the predefined
   variable registry in `renderer/variables.js`. Both `/` commands and `$`
-  variables share the same suggestion menu.
+  variables share the same suggestion menu. React components attach it through
+  `CommandField` and `useStaticCommands`.
+- Renderer code follows the context + hooks approach: contexts hold shared state
+  and UI providers; hooks encapsulate reusable behavior. Views and components
+  never call Electron APIs directly except through `renderer/src/lib/api.js`.
 - The AI command is `/generate description prompt: ...`; it renders as an
   inline widget with an editable prompt chip.
 - Variables such as `$title`, `$playlist_name` and `$playlist_link` resolve from
@@ -177,14 +191,19 @@ system tray, notifications and IPC registration.
 
 ```bash
 npm install
-npm start
+npm start        # starts Vite + Electron in development
+npm run dev:beta # development with the beta channel/profile
 ```
 
-Requires a `client_secrets.json` (OAuth desktop client) in the project root.
+`npm run build:renderer` builds `dist-renderer/`. The `dist:*` scripts build the
+renderer automatically before packaging. Requires a `client_secrets.json`
+(OAuth desktop client) in the project root.
 
 ## Testing checklist
 
-- `node --check` every JavaScript file.
+- `node --check` every CommonJS file (`main.js`, `preload.js`, `src/**`).
+- `npm run build:renderer` must succeed.
+- Launch `npm start` and verify the React renderer loads without console errors.
 - Launch the app and verify login, template CRUD, `/template` autocomplete in
   both title and description, background upload with tray progress, and the
   completion notification opening YouTube Studio.
