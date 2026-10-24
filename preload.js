@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer, webUtils } = require("electron");
 
 contextBridge.exposeInMainWorld("api", {
+  copyText: (text) => ipcRenderer.invoke("clipboard:write", text),
   getAppInfo: () => ipcRenderer.invoke("app:info"),
   getConfigInfo: () => ipcRenderer.invoke("config:info"),
   importCredentials: () => ipcRenderer.invoke("config:importSecrets"),

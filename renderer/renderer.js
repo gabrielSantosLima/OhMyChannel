@@ -163,6 +163,20 @@ function setMessage(text, type = "") {
   window.notify(text, { type: kind });
 }
 
+async function copyDescriptionText(item) {
+  const text = serializeField(item.dom.desc);
+  if (!text.trim()) {
+    setMessage(t("msg.descriptionEmpty"), "error");
+    return;
+  }
+  try {
+    await window.api.copyText(text);
+    setMessage(t("msg.descriptionCopied"), "ok");
+  } catch (err) {
+    setMessage(t("msg.copyFailed", { message: err.message }), "error");
+  }
+}
+
 /* ---------- Generic confirmation modal ---------- */
 
 let confirmResolve = null;
@@ -731,7 +745,17 @@ function addItem(filePath) {
   descField.className = "field";
   const descLabel = document.createElement("label");
   descLabel.textContent = t("item.description");
-  descField.append(descLabel, descInput, descCount, descMenu, descPreview);
+  const copyDescription = document.createElement("button");
+  copyDescription.type = "button";
+  copyDescription.className = "icon-button";
+  copyDescription.title = t("item.copyDescription");
+  copyDescription.setAttribute("aria-label", t("item.copyDescription"));
+  copyDescription.innerHTML =
+    '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
+  const descHead = document.createElement("div");
+  descHead.className = "field-label-row";
+  descHead.append(descLabel, copyDescription);
+  descField.append(descHead, descInput, descCount, descMenu, descPreview);
 
   const options = document.createElement("div");
   options.className = "card-options";
@@ -1000,6 +1024,7 @@ function addItem(filePath) {
   upload.addEventListener("click", () => handleItemAction(item));
   cancel.addEventListener("click", () => cancelItem(item));
   remove.addEventListener("click", () => removeItem(item));
+  copyDescription.addEventListener("click", () => copyDescriptionText(item));
 
   thumbButton.addEventListener("click", async () => {
     const path = await window.api.pickThumbnail();

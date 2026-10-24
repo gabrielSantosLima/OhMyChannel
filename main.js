@@ -9,6 +9,7 @@ const {
   dialog,
   shell,
   safeStorage,
+  clipboard,
 } = require("electron");
 const path = require("path");
 const fs = require("fs");
@@ -778,6 +779,10 @@ function registerIpc() {
   );
   ipcMain.handle("ai:test", () => aiController.listModels());
   ipcMain.handle("ai:channelInfo", () => aiController.channelInfo());
+
+  ipcMain.handle("clipboard:write", (_event, text) => {
+    clipboard.writeText(String(text || ""));
+  });
 
   ipcMain.handle("app:info", () => ({
     name: app.getName(),
