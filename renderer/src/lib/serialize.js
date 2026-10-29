@@ -28,6 +28,7 @@ export function serializeNode(node, templates) {
 
 export function serializeField(root, templates) {
   if (!root) return "";
+  if (typeof root === "string") return root;
   return Array.from(root.childNodes)
     .map((child) => serializeNode(child, templates))
     .join("");

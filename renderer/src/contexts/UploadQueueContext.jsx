@@ -16,7 +16,6 @@ import {
   isImageFile,
   isVideoFile,
   itemOverrides,
-  serializeField,
   statusText,
   thumbnailPlaceholders,
   toIsoOrNull,
@@ -169,10 +168,7 @@ export function UploadQueueProvider({ children }) {
           id: item.id,
           filePath: item.renderedPath || item.filePath,
           title,
-          description: serializeField(
-            card ? card.getDescription() : null,
-            latestData.current.templates
-          ).slice(0, 5000),
+          description: (card ? card.getDescription() : "").slice(0, 5000),
           playlistId: item.playlistId || null,
           publishAt: toIsoOrNull(item.publishAt),
           thumbnailPath,
